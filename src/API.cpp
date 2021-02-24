@@ -1,4 +1,4 @@
-// #define _GLIBCXX_USE_CXX11_ABI 0
+/* CypherTrust */
 
 #include "API.h"
 #include <vector>
@@ -10,6 +10,8 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+
+#define CYPHER_TRUST "CypherTrust"
 
 using namespace rapidjson;
 using namespace std;
@@ -28,26 +30,23 @@ static bool DetectHttpError(string res)
   d.Parse(res.c_str());
   if(d.HasMember("error")){
     string str_error = d["error"].GetString();
-  cout<< str_error << endl;
+    cout<< res << endl;
 
     boost::erase_all(str_error, "x");
     int error_code = atoi(str_error.c_str());
-    cout << error_code << endl;
     if(error_code == 20000)
     {
-      cout << "20000" << endl;
-      openlog("Auth log",LOG_CONS | LOG_PID | LOG_NDELAY, LOG_AUTH);    
+      openlog(CYPHER_TRUST,LOG_CONS | LOG_PID | LOG_NDELAY, LOG_AUTH);    
       syslog(LOG_INFO,"Authentication is success. The status code is %d, ",error_code);
     }
     if(error_code >= 40000 && error_code < 50000)
-    {      cout << "40000" << endl;
-      openlog("Auth log",LOG_CONS | LOG_PID | LOG_NDELAY, LOG_AUTH);    
+    {
+      openlog(CYPHER_TRUST,LOG_CONS | LOG_PID | LOG_NDELAY, LOG_AUTH);    
       syslog(LOG_ERR,"Authentication is error condition. The status code is %d, ",error_code);
     }
     if (error_code >= 50000 )
     {
-      cout << "50000" << endl;
-      openlog("Auth log",LOG_CONS | LOG_PID | LOG_NDELAY, LOG_AUTH);    
+      openlog(CYPHER_TRUST, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_AUTH);    
       syslog(LOG_CRIT,"Authentication is critical  condition. The status code is %d, ",error_code);
     }
     closelog();
