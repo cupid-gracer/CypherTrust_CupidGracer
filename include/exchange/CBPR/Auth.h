@@ -4,17 +4,19 @@
 
 #include <string>
 
+using namespace std;
+
 class Auth
 {
 public:
-  std::string Key;
-  std::string Secret;
-  std::string Passphrase;
-  std::string Sign(std::string time_stamp, std::string method, std::string path, std::string body);
-  std::string GetTimestamp();
+  string Key;
+  string Secret;
+  string Passphrase;
+  string Sign(string time_stamp, string method, string path, string body);
+  string GetTimestamp();
 
   Auth() {}
-  Auth(std::string key, std::string secret, std::string passphrase);
+  Auth(string key, string secret, string passphrase);
 };
 
 #endif // AUTH_H

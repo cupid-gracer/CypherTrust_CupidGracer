@@ -6,14 +6,16 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 class HITB
 {
 public:
     HITB();
     ~HITB();
     /* Declare Variables */
-    std::string uri;
-    std::string product_id;
+    string uri;
+    string product_id;
     API api;
 
 

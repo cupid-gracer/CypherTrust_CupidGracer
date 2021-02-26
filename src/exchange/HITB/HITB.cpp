@@ -1,5 +1,5 @@
-#include "App.h"
-#include "API.h"
+#include "exchange/HITB/HITB.h"
+#include "exchange/HITB/API.h"
 #include "Util.h"
 
 #include <math.h>
@@ -26,8 +26,6 @@ using namespace std;
 vector<string> coinList;
 vector<string> myCoinList;
 vector<vector<int>> all_cycles;
-// C++ program for the above approach
-//#include <bits/stdc++.h>
 
 // Structure to represent a weighted
 // edge in graph
@@ -178,7 +176,7 @@ void NegCycleBellmanFord(struct Graph *graph, int src)
 	}
 }
 
-App::App()
+HITB::HITB()
 {
 	std::string line;
 	std::ifstream myfile("key.conf");
@@ -244,19 +242,19 @@ App::App()
 	util.split(str_currency, ',', myCoinList);
 }
 
-App::~App()
+HITB::~HITB()
 {
 }
 
 //Public
 // Available symbols
-void App::Get_list_symbols()
+void HITB::Get_list_symbols()
 {
 	api.Get_list_symbols();
 }
 
 //2 Get symbol info
-void App::Get_symbol_info()
+void HITB::Get_symbol_info()
 {
 	string symbol = "";
 	cout << "symbol ( ETHBTC or BETBTC ):\t";
@@ -266,7 +264,7 @@ void App::Get_symbol_info()
 
 // Available currencies
 //parameter  ex: ETHBTC,BETBTC...
-void App::Get_list_currencies()
+void HITB::Get_list_currencies()
 {
 	string currencies = "";
 	cout << "currencies ( ETHBTC,BETBTC ):\t";
@@ -275,7 +273,7 @@ void App::Get_list_currencies()
 }
 
 // Get currency info
-void App::Get_currency_info()
+void HITB::Get_currency_info()
 {
 	string currency = "";
 	cout << "currency ( ETH, BTC ):\t";
@@ -284,13 +282,13 @@ void App::Get_currency_info()
 }
 
 // Get Tickers
-void App::Get_list_tickers()
+void HITB::Get_list_tickers()
 {
 	api.Get_list_tickers();
 }
 
 // Get Tickers
-void App::Get_ticker()
+void HITB::Get_ticker()
 {
 	string symbol = "";
 	cout << "symbol ( ETHBTC or BETBTC ):\t";
@@ -299,7 +297,7 @@ void App::Get_ticker()
 }
 
 // Get Trades
-void App::Get_list_trades()
+void HITB::Get_list_trades()
 {
 	string symbols = "";
 	cout << "symbols ( ETHBTC,BETBTC ):\t";
@@ -309,7 +307,7 @@ void App::Get_list_trades()
 
 
 //Get Trade
-void App::Get_trade()
+void HITB::Get_trade()
 {
 	string symbol = "";
 	cout << "symbol ( ETHBTC or BETBTC ):\t";
@@ -318,13 +316,13 @@ void App::Get_trade()
 }
 
 //Get list order
-void App::Get_list_orderbook()
+void HITB::Get_list_orderbook()
 {
 	api.Get_list_orderbook();
 }
 
 //Get order
-void App::Get_orderbook()
+void HITB::Get_orderbook()
 {
 	string symbol = "";
 	cout << "symbol ( ETHBTC or BETBTC ):\t";
@@ -333,7 +331,7 @@ void App::Get_orderbook()
 }
 
 //Get Candles
-void App::Get_list_candles()
+void HITB::Get_list_candles()
 {
 	string symbols = "";
 	cout << "symbols ( ETHBTC,BETBTC ):\t";
@@ -342,7 +340,7 @@ void App::Get_list_candles()
 }
 
 //Get Candles
-void App::Get_candle()
+void HITB::Get_candle()
 {
 	string symbol = "";
 	cout << "symbol ( ETHBTC,BETBTC ):\t";
@@ -351,12 +349,12 @@ void App::Get_candle()
 }
 
 //Get Candles
-void App::Get_list_orders()
+void HITB::Get_list_orders()
 {
 	api.Get_list_orders();
 }
 
-void App::Get_arbitrage_opportunity()
+void HITB::Get_arbitrage_opportunity()
 {
 	all_cycles.clear();
 	bool isUse = true;

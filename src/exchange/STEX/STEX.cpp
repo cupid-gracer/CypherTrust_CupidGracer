@@ -155,7 +155,7 @@ void NegCycleBellmanFord(struct Graph *graph, int src)
 
 }
 
-App::App()
+STEX::STEX()
 {
 	std::string line;
 	std::ifstream myfile("key.conf");
@@ -193,19 +193,19 @@ App::App()
 	util.split(str_currency, ',', myCoinList);
 }
 
-App::~App()
+STEX::~STEX()
 {
 }
 
 //Public
 // Available Currencies
-void App::Get_list_currencies()
+void STEX::Get_list_currencies()
 {
 	api.Get_list_currencies();
 }
 
 // Get currency info
-void App::Get_currency_info()
+void STEX::Get_currency_info()
 {
 	std::string currencyId;
 	std::cout << "please enter currencyId:\t";
@@ -215,19 +215,19 @@ void App::Get_currency_info()
 }
 
 // Available markets
-void App::Get_list_markets()
+void STEX::Get_list_markets()
 {
 	api.Get_list_markets();
 }
 
 // Get list of all avialable currency pairs groups
-void App::Get_list_currency_pairs_groups()
+void STEX::Get_list_currency_pairs_groups()
 {
 	api.Get_list_currency_pairs_groups();
 }
 
 // Available currency pairs
-void App::Get_currency_pairs()
+void STEX::Get_currency_pairs()
 {
 	std::string code;
 	std::cout << "please enter code (Available values : ALL, marketSymbol):\t";
@@ -237,7 +237,7 @@ void App::Get_currency_pairs()
 }
 
 // Available currency pairs for a given group
-void App::Get_currency_pairs_given_group()
+void STEX::Get_currency_pairs_given_group()
 {
 	std::string currencyPairGroupId;
 	std::cout << "please enter currencyPairGroupId:\t";
@@ -247,7 +247,7 @@ void App::Get_currency_pairs_given_group()
 }
 
 // Get currency pair information
-void App::Get_currency_pair_information()
+void STEX::Get_currency_pair_information()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId:\t";
@@ -257,7 +257,7 @@ void App::Get_currency_pair_information()
 }
 
 // Tickers list for all currency pairs
-void App::Get_ticker_list_currency_pairs(bool isUse)
+void STEX::Get_ticker_list_currency_pairs(bool isUse)
 {
 	all_cycles.clear();
 	if(isUse && myCoinList.size() < 1) 
@@ -435,7 +435,7 @@ void App::Get_ticker_list_currency_pairs(bool isUse)
 }
 
 // Ticker for currency pair
-void App::Get_ticker_currency_pair()
+void STEX::Get_ticker_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId:\t";
@@ -445,7 +445,7 @@ void App::Get_ticker_currency_pair()
 }
 
 // Trades for given currency pair
-void App::Get_trades_currency_pair()
+void STEX::Get_trades_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId:\t";
@@ -456,7 +456,7 @@ void App::Get_trades_currency_pair()
 }
 
 // Orderbook for given currency pair
-void App::Get_orderbook_currency_pair()
+void STEX::Get_orderbook_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId:\t";
@@ -467,7 +467,7 @@ void App::Get_orderbook_currency_pair()
 }
 
 // A list of candles for given currency pair
-void App::Get_list_candles_currency_pair()
+void STEX::Get_list_candles_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId:\t";
@@ -493,13 +493,13 @@ void App::Get_list_candles_currency_pair()
 }
 
 // Available Deposit Statuses
-void App::Get_list_deposit_statuses()
+void STEX::Get_list_deposit_statuses()
 {
 	api.Get_list_deposit_statuses();
 }
 
 // Get deposit status info
-void App::Get_deposit_status()
+void STEX::Get_deposit_status()
 {
 	std::string statusId;
 	std::cout << "please enter statusId:\t";
@@ -509,13 +509,13 @@ void App::Get_deposit_status()
 }
 
 // Available Withdrawal Statuses
-void App::Get_list_withdrawal_statuses()
+void STEX::Get_list_withdrawal_statuses()
 {
 	api.Get_list_withdrawal_statuses();
 }
 
 // Get status info
-void App::Get_withdrawal_status()
+void STEX::Get_withdrawal_status()
 {
 	std::string statusId;
 	std::cout << "please enter statusId:\t";
@@ -525,26 +525,26 @@ void App::Get_withdrawal_status()
 }
 
 // Test API is working and get server time
-void App::ping()
+void STEX::ping()
 {
 	api.ping();
 }
 
 // Shows the official mobile applications data
-void App::Get_mobile_version()
+void STEX::Get_mobile_version()
 {
 	api.Get_mobile_version();
 }
 
 // Get the last 20 posts (stex.com) on Twitter
-void App::Get_twitter()
+void STEX::Get_twitter()
 {
 	api.Get_twitter();
 }
 
 //Trading
 //Returns the user's fees for a given currency pair
-void App::Get_user_fee_currency_pair()
+void STEX::Get_user_fee_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId (1, 2, 3..):\t";
@@ -554,19 +554,19 @@ void App::Get_user_fee_currency_pair()
 }
 
 //List your currently open orders
-void App::Get_list_open_all_orders()
+void STEX::Get_list_open_all_orders()
 {
 	api.Get_list_open_all_orders();
 }
 
 //Delete all active orders
-void App::Delete_all_active_orders()
+void STEX::Delete_all_active_orders()
 {
 	api.Delete_all_active_orders();
 }
 
 //List your currently open orders for given currency pair
-void App::Get_list_open_order_by_currency_pair()
+void STEX::Get_list_open_order_by_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId (1, 2, 3..):\t";
@@ -576,7 +576,7 @@ void App::Get_list_open_order_by_currency_pair()
 }
 
 //Delete active orders for given currency pair
-void App::Delete_order_by_currency_pair()
+void STEX::Delete_order_by_currency_pair()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId (1, 2, 3..):\t";
@@ -586,7 +586,7 @@ void App::Delete_order_by_currency_pair()
 }
 
 //Create new order and put it to the orders processing queue
-void App::Creat_new_order()
+void STEX::Creat_new_order()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId (1, 2, 3..):\t";
@@ -617,7 +617,7 @@ void App::Creat_new_order()
 }
 
 //Get a single order
-void App::Get_single_order()
+void STEX::Get_single_order()
 {
 	std::string orderId;
 	std::cout << "please enter orderId:\t";
@@ -627,7 +627,7 @@ void App::Get_single_order()
 }
 
 //Cancel order
-void App::Delete_order()
+void STEX::Delete_order()
 {
 	std::string orderId;
 	std::cout << "please enter orderId:\t";
@@ -637,7 +637,7 @@ void App::Delete_order()
 }
 
 //Get a list of currencies user had any activity in
-void App::Get_list_currency_user_activity()
+void STEX::Get_list_currency_user_activity()
 {
 	std::string key;
 	std::cout << "please enter key ( Deposits, Withdrawals, Burn, Reward, Investments ):\t";
@@ -647,19 +647,19 @@ void App::Get_list_currency_user_activity()
 }
 
 //Gets the list of currency pairs the user had orders in for all the time
-void App::Get_list_all_currencypairs_by_user()
+void STEX::Get_list_all_currencypairs_by_user()
 {
 	api.Get_list_all_currencypairs_by_user();
 }
 
 //Get past orders
-void App::Get_past_orders()
+void STEX::Get_past_orders()
 {
 	api.Get_past_orders();
 }
 
 //Get specified order details
-void App::Get_order_details()
+void STEX::Get_order_details()
 {
 	std::string orderId;
 	std::cout << "please enter orderId :\t";
@@ -669,7 +669,7 @@ void App::Get_order_details()
 }
 
 //Get a list of user trades according to request parameters
-void App::Get_list_user_spec_trades()
+void STEX::Get_list_user_spec_trades()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId :\t";
@@ -679,7 +679,7 @@ void App::Get_list_user_spec_trades()
 }
 
 //Get reports list for category
-void App::Get_reports_list_category()
+void STEX::Get_reports_list_category()
 {
 	std::string listMode;
 	std::cout << "please enter listMode ( all, recently, scheduled ):\t";
@@ -689,7 +689,7 @@ void App::Get_reports_list_category()
 }
 
 //Get some report info
-void App::Get_report_info()
+void STEX::Get_report_info()
 {
 	std::string id;
 	std::cout << "please enter id :\t";
@@ -699,7 +699,7 @@ void App::Get_report_info()
 }
 
 //Remove report by id
-void App::Delete_report_by_id()
+void STEX::Delete_report_by_id()
 {
 	std::string id;
 	std::cout << "please enter id :\t";
@@ -709,7 +709,7 @@ void App::Delete_report_by_id()
 }
 
 //Create new report
-void App::Create_new_report()
+void STEX::Create_new_report()
 {
 	std::string name;
 	std::cout << "please enter name :\t";
@@ -735,7 +735,7 @@ void App::Create_new_report()
 }
 
 //Get file by id
-void App::Get_file_by_id()
+void STEX::Get_file_by_id()
 {
 	std::string id;
 	std::cout << "please enter id :\t";
@@ -746,7 +746,7 @@ void App::Get_file_by_id()
 
 //Settings
 //User event notification settings
-void App::Get_list_notification_by_event()
+void STEX::Get_list_notification_by_event()
 {
 	std::string event;
 	std::cout << "please enter event (An event name you want to subscribe.) :\t";
@@ -756,13 +756,13 @@ void App::Get_list_notification_by_event()
 }
 
 //User event notification settings
-void App::Get_list_notification()
+void STEX::Get_list_notification()
 {
 	api.Get_list_notification();
 }
 
 //Set notification settings
-void App::Set_notification_settings()
+void STEX::Set_notification_settings()
 {
 	std::string event;
 	std::cout << "please enter event (An event name you want to subscribe.) :\t";
@@ -781,26 +781,26 @@ void App::Set_notification_settings()
 }
 
 //Set notification settings
-void App::Set_notification_settings_one_request()
+void STEX::Set_notification_settings_one_request()
 {
 	api.Set_notification_settings_one_request();
 }
 
 //Profile
 //Account Information
-void App::Get_accoutn_information()
+void STEX::Get_accoutn_information()
 {
 	api.Get_accoutn_information();
 }
 
 //Get a list of user wallets
-void App::Get_list_user_wallets()
+void STEX::Get_list_user_wallets()
 {
 	api.Get_list_user_wallets();
 }
 
 //Single wallet information
-void App::Get_single_user_wallet()
+void STEX::Get_single_user_wallet()
 {
 	std::string walletId;
 	std::cout << "please enter walletId :\t";
@@ -810,7 +810,7 @@ void App::Get_single_user_wallet()
 }
 
 //Burns the given wallet
-void App::Burn_wallet()
+void STEX::Burn_wallet()
 {
 	std::string walletId;
 	std::cout << "please enter walletId :\t";
@@ -820,7 +820,7 @@ void App::Burn_wallet()
 }
 
 //Create a wallet for given currency
-void App::Create_wallet()
+void STEX::Create_wallet()
 {
 	std::string currencyId;
 	std::cout << "please enter currencyId :\t";
@@ -830,7 +830,7 @@ void App::Create_wallet()
 }
 
 //Get deposit address for given wallet
-void App::Get_deposit_address_wallet()
+void STEX::Get_deposit_address_wallet()
 {
 	std::string walletId;
 	std::cout << "please enter walletId :\t";
@@ -840,7 +840,7 @@ void App::Get_deposit_address_wallet()
 }
 
 //Create new deposit address
-void App::Create_new_deposit_address()
+void STEX::Create_new_deposit_address()
 {
 	std::string walletId;
 	std::cout << "please enter walletId :\t";
@@ -850,13 +850,13 @@ void App::Create_new_deposit_address()
 }
 
 //Get a list of deposits made by user
-void App::Get_list_user_deposit()
+void STEX::Get_list_user_deposit()
 {
 	api.Get_list_user_deposit();
 }
 
 //Get deposit by id
-void App::Get_deposit()
+void STEX::Get_deposit()
 {
 	std::string id;
 	std::cout << "please enter id :\t";
@@ -866,13 +866,13 @@ void App::Get_deposit()
 }
 
 //Get a list of rewards obtained by user (e.g. in trading competitions)
-void App::Get_list_rewards()
+void STEX::Get_list_rewards()
 {
 	api.Get_list_rewards();
 }
 
 //Get reward by id
-void App::Get_reward()
+void STEX::Get_reward()
 {
 	std::string id;
 	std::cout << "please enter id :\t";
@@ -882,13 +882,13 @@ void App::Get_reward()
 }
 
 //Get a list of user address book items
-void App::Get_list_user_address()
+void STEX::Get_list_user_address()
 {
 	api.Get_list_user_address();
 }
 
 //Single address book item
-void App::Get_single_address()
+void STEX::Get_single_address()
 {
 	std::string itemId;
 	std::cout << "please enter itemId :\t";
@@ -898,7 +898,7 @@ void App::Get_single_address()
 }
 
 //Deletes address book item
-void App::Delete_address_book()
+void STEX::Delete_address_book()
 {
 	std::string itemId;
 	std::cout << "please enter itemId :\t";
@@ -908,7 +908,7 @@ void App::Delete_address_book()
 }
 
 //Disables the address book item
-void App::Disable_address_book_item()
+void STEX::Disable_address_book_item()
 {
 	std::string itemId;
 	std::cout << "please enter itemId :\t";
@@ -918,7 +918,7 @@ void App::Disable_address_book_item()
 }
 
 //Enable the address book item
-void App::Enable_address_book_item()
+void STEX::Enable_address_book_item()
 {
 	std::string itemId;
 	std::cout << "please enter itemId :\t";
@@ -928,25 +928,25 @@ void App::Enable_address_book_item()
 }
 
 //Restrict the withdrawals to only addresses that are active in addressbook
-void App::Restrict_withdrawal_addressbook()
+void STEX::Restrict_withdrawal_addressbook()
 {
 	api.Restrict_withdrawal_addressbook();
 }
 
 //Remove restriction to withdraw to only addresses that are active in addressbook. E.g. allow to withdraw to any address.
-void App::Allow_withdrawal_addressbook()
+void STEX::Allow_withdrawal_addressbook()
 {
 	api.Allow_withdrawal_addressbook();
 }
 
 //Get a list of withdrawals made by user
-void App::Get_list_withdrawal()
+void STEX::Get_list_withdrawal()
 {
 	api.Get_list_withdrawal();
 }
 
 //Get withdrawal by id
-void App::Get_withdrawal()
+void STEX::Get_withdrawal()
 {
 	std::string id;
 	std::cout << "please enter id :\t";
@@ -956,7 +956,7 @@ void App::Get_withdrawal()
 }
 
 //Create withdrawal request
-void App::Create_withdrawal_request()
+void STEX::Create_withdrawal_request()
 {
 	std::string currencyId;
 	std::cout << "please enter currencyId :\t";
@@ -974,7 +974,7 @@ void App::Create_withdrawal_request()
 }
 
 //Cancel unconfirmed withdrawal
-void App::Cancel_unconfirmed_withdrawal()
+void STEX::Cancel_unconfirmed_withdrawal()
 {
 	std::string withdrawalId;
 	std::cout << "please enter withdrawalId :\t";
@@ -984,19 +984,19 @@ void App::Cancel_unconfirmed_withdrawal()
 }
 
 //Get notifications
-void App::Get_notifications()
+void STEX::Get_notifications()
 {
 	api.Get_notifications();
 }
 
 //Get a list of active price alerts
-void App::Get_list_active_price_alert()
+void STEX::Get_list_active_price_alert()
 {
 	api.Get_list_active_price_alert();
 }
 
 //Create new price alert
-void App::Create_new_price_alert()
+void STEX::Create_new_price_alert()
 {
 	std::string currencyPairId;
 	std::cout << "please enter currencyPairId :\t";
@@ -1014,7 +1014,7 @@ void App::Create_new_price_alert()
 }
 
 //Delete the price alert by ID
-void App::Delete_price_alert()
+void STEX::Delete_price_alert()
 {
 	std::string priceAlertId;
 	std::cout << "please enter priceAlertId :\t";
@@ -1024,13 +1024,13 @@ void App::Delete_price_alert()
 }
 
 //Create referral program
-void App::Create_referral_program()
+void STEX::Create_referral_program()
 {
 	api.Create_referral_program();
 }
 
 //Insert referral code
-void App::Insert_referral_code()
+void STEX::Insert_referral_code()
 {
 	std::string code;
 	std::cout << "please enter code :\t";
@@ -1040,7 +1040,7 @@ void App::Insert_referral_code()
 }
 
 //Transfer referral bonuses balance to main balance for given currency
-void App::Transfer_referral_bonuses()
+void STEX::Transfer_referral_bonuses()
 {
 	std::string currencyId;
 	std::cout << "please enter currencyId :\t";
@@ -1050,7 +1050,7 @@ void App::Transfer_referral_bonuses()
 }
 
 //Get favorite currency pairs
-void App::Get_fav_currency_pair()
+void STEX::Get_fav_currency_pair()
 {
 	api.Get_fav_currency_pair();
 }
@@ -1061,7 +1061,7 @@ void App::Get_fav_currency_pair()
     removePairIds   array[integer](query)	remove ids of currency pairs from list
     show        boolean(query)
     */
-void App::Set_fav_currency_pair()
+void STEX::Set_fav_currency_pair()
 {
 	std::string addPairIds;
 	std::cout << "please enter addPairIds(1,2,3...) :\t";
@@ -1071,7 +1071,7 @@ void App::Set_fav_currency_pair()
 }
 
 //Get current token scopes
-void App::Get_current_token_scopes()
+void STEX::Get_current_token_scopes()
 {
 	api.Get_current_token_scopes();
 }

@@ -1,4 +1,4 @@
-#include "exchange/STEX/API.h"
+#include "exchange/CBPR/API.h"
 #include <iostream>
 #include "curl/curl.h"
 #include "rapidjson/document.h"
@@ -6,20 +6,21 @@
 #include "rapidjson/stringbuffer.h"
 
 using namespace rapidjson;
+using namespace std;
 
 /* Used by API::Call to put websource into a string type */
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-  ((std::string *)userp)->append((char *)contents, size * nmemb);
+  ((string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
 }
 
 /* Uses libcurl to get Data From API */
-std::string API::Call(std::string method, bool authed, std::string path, std::string body)
+string API::Call(string method, bool authed, string path, string body)
 {
   CURL *curl;
   CURLcode res;
-  std::string readBuffer;
+  string readBuffer;
   curl = curl_easy_init();
   if (curl)
   {
@@ -31,8 +32,8 @@ std::string API::Call(std::string method, bool authed, std::string path, std::st
     chunk = curl_slist_append(chunk, "Content-Type: application/json");
     if (authed)
     {
-      std::string time_stamp = auth.GetTimestamp();
-      std::string sign = auth.Sign(time_stamp, method, path, body);
+      string time_stamp = auth.GetTimestamp();
+      string sign = auth.Sign(time_stamp, method, path, body);
       chunk = curl_slist_append(chunk, ("CB-ACCESS-KEY: " + auth.Key).c_str());
       chunk = curl_slist_append(chunk, ("CB-ACCESS-SIGN: " + sign).c_str());
       chunk = curl_slist_append(chunk, ("CB-ACCESS-TIMESTAMP: " + time_stamp).c_str());
@@ -62,10 +63,10 @@ std::string API::Call(std::string method, bool authed, std::string path, std::st
   return readBuffer;
 }
 
-std::string API::Get_Buy_Price()
+string API::Get_Buy_Price()
 {
-  std::string ret = "";
-  std::string st = Call("GET", false, "/products/" + product_id + "/book", "");
+  string ret = "";
+  string st = Call("GET", false, "/products/" + product_id + "/book", "");
   Document d;
   d.Parse(st.c_str());
   if (d.HasMember("message"))
@@ -85,10 +86,10 @@ std::string API::Get_Buy_Price()
   return ret;
 }
 
-double API::Get_Balance(std::string currency)
+double API::Get_Balance(string currency)
 {
   double ret = 0;
-  std::string txt = Call("GET", true, "/accounts", "");
+  string txt = Call("GET", true, "/accounts", "");
   Document d;
   d.Parse(txt.c_str());
   assert(d.IsArray());
@@ -96,7 +97,7 @@ double API::Get_Balance(std::string currency)
   {
     assert(d[i].HasMember("currency"));
     assert(d[i]["currency"].IsString());
-    std::string cur = d[i]["currency"].GetString();
+    string cur = d[i]["currency"].GetString();
     if (cur == currency)
     {
       assert(d[i].HasMember("available"));
@@ -108,9 +109,9 @@ double API::Get_Balance(std::string currency)
   return ret;
 }
 
-std::string API::Place_Limit_Order(std::string side, std::string price, std::string size)
+string API::Place_Limit_Order(string side, string price, string size)
 {
-  std::string order_id = "";
+  string order_id = "";
   Document d;
   d.SetObject();
   rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
@@ -145,7 +146,7 @@ std::string API::Place_Limit_Order(std::string side, std::string price, std::str
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string returned = Call("POST", true, "/orders", strbuf.GetString());
+  string returned = Call("POST", true, "/orders", strbuf.GetString());
   // std::cout << "returned = " << returned << std::endl;
   // std::cout << "returned strbuf.GetString = " << strbuf.GetString() << std::endl;
   Document d_1;
@@ -165,41 +166,41 @@ std::string API::Place_Limit_Order(std::string side, std::string price, std::str
 }
 
 //List Accounts
-std::string API::Get_List_Accounts()
+string API::Get_List_Accounts()
 {
-  std::string res = Call("GET", true, "/accounts/", "");
+  string res = Call("GET", true, "/accounts/", "");
   std::cout << res;
   return "";
 }
 
 //Get an Account
-std::string API::Get_Account(std::string account_id)
+string API::Get_Account(string account_id)
 {
-  std::string res = Call("GET", true, "/accounts/" + account_id, "");
+  string res = Call("GET", true, "/accounts/" + account_id, "");
   std::cout << res;
   return "";
 }
 
 //Get Account History
-std::string API::Get_Account_History(std::string account_id)
+string API::Get_Account_History(string account_id)
 {
-  std::string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
+  string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
   std::cout << res;
   return "";
 }
 
 //Get Holds
-std::string API::Get_Holds(std::string account_id)
+string API::Get_Holds(string account_id)
 {
-  std::string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
+  string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
   std::cout << res;
   return "";
 }
 
 // Place a New Order
-std::string API::Place_New_Order(std::string side, std::string price, std::string size, std::string client_oid, std::string type, std::string stp, std::string stop, std::string stop_price, std::string time_in_force, std::string cancel_after, bool post_only, std::string funds)
+string API::Place_New_Order(string side, string price, string size, string client_oid, string type, string stp, string stop, string stop_price, string time_in_force, string cancel_after, bool post_only, string funds)
 {
-  std::string order_id = "";
+  string order_id = "";
   Document d;
   d.SetObject();
   rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
@@ -275,7 +276,7 @@ std::string API::Place_New_Order(std::string side, std::string price, std::strin
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/orders", strbuf.GetString());
+  string res = Call("POST", true, "/orders", strbuf.GetString());
   Document d_1;
   d_1.Parse(res.c_str());
   if (d_1.HasMember("id"))
@@ -293,16 +294,16 @@ std::string API::Place_New_Order(std::string side, std::string price, std::strin
 }
 
 // Cancel Order
-std::string API::Cancel_Order(std::string oid, bool isOid)
+string API::Cancel_Order(string oid, bool isOid)
 {
-  std::string url = "";
+  string url = "";
   if (!isOid)
   {
     url = "/orders/" + oid;
   }
   else
     url = "/orders/client:" + oid;
-  std::string res = Call("DELETE", true, url, "");
+  string res = Call("DELETE", true, url, "");
   std::cout << res;
   Document d;
   d.Parse(res.c_str());
@@ -315,17 +316,17 @@ std::string API::Cancel_Order(std::string oid, bool isOid)
 }
 
 // Cancel All Orders
-std::string API::Cancel_All_Order()
+string API::Cancel_All_Order()
 {
-  std::string res = Call("DELETE", true, "/orders", "");
+  string res = Call("DELETE", true, "/orders", "");
   std::cout << res;
   return "";
 }
 
 //List Orders
-std::string API::List_Orders(std::string product_id, bool isOpen, bool isPending, bool isActive)
+string API::List_Orders(string product_id, bool isOpen, bool isPending, bool isActive)
 {
-  std::string url = "/orders?";
+  string url = "/orders?";
   if (product_id != "")
   {
     url += "product_id=" + product_id + "&";
@@ -343,22 +344,22 @@ std::string API::List_Orders(std::string product_id, bool isOpen, bool isPending
     url += "status=active";
   }
 
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get an Order
-std::string API::Get_Order(std::string oid, bool isOid)
+string API::Get_Order(string oid, bool isOid)
 {
-  std::string url = "";
+  string url = "";
   if (!isOid)
   {
     url = "/orders/" + oid;
   }
   else
     url = "/orders/client:" + oid;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   Document d;
   d.Parse(res.c_str());
@@ -372,148 +373,148 @@ std::string API::Get_Order(std::string oid, bool isOid)
 
 //Products
 // Get Products
-std::string API::Get_Products()
+string API::Get_Products()
 {
-  std::string url = "/products";
+  string url = "/products";
 
-  std::string res = Call("GET", false, url, "");
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Single Product
-std::string API::Get_Single_Product()
+string API::Get_Single_Product()
 {
-  std::string url = "/products/" + product_id;
-  std::string res = Call("GET", false, url, "");
+  string url = "/products/" + product_id;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Product Order Book
-std::string API::Get_Product_Order_Book()
+string API::Get_Product_Order_Book()
 {
-  std::string url = "/products/" + product_id + "/book";
-  std::string res = Call("GET", false, url, "");
+  string url = "/products/" + product_id + "/book";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Product Ticker
-std::string API::Get_Product_Ticker()
+string API::Get_Product_Ticker()
 {
-  std::string url = "/products/" + product_id + "/ticker";
-  std::string res = Call("GET", false, url, "");
+  string url = "/products/" + product_id + "/ticker";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Trades
-std::string API::Get_Trades()
+string API::Get_Trades()
 {
-  std::string url = "/products/" + product_id + "/trades";
-  std::string res = Call("GET", false, url, "");
+  string url = "/products/" + product_id + "/trades";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Historic Rates
-std::string API::Get_Historic_Rates()
+string API::Get_Historic_Rates()
 {
-  std::string url = "/products/" + product_id + "/candles";
-  std::string res = Call("GET", false, url, "");
+  string url = "/products/" + product_id + "/candles";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get 24hr Stats
-std::string API::Get_24hr_Stats()
+string API::Get_24hr_Stats()
 {
-  std::string url = "/products/" + product_id + "/stats";
-  std::string res = Call("GET", false, url, "");
+  string url = "/products/" + product_id + "/stats";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Currencies
-std::string API::Get_Currencies()
+string API::Get_Currencies()
 {
-  std::string url = "/currencies/";
-  std::string res = Call("GET", false, url, "");
+  string url = "/currencies/";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get Currency
-std::string API::Get_Currency(std::string cid)
+string API::Get_Currency(string cid)
 {
-  std::string url = "/currencies/" + cid;
-  std::string res = Call("GET", false, url, "");
+  string url = "/currencies/" + cid;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Time
 //Get Time
-std::string API::Get_Time()
+string API::Get_Time()
 {
-  std::string url = "/time";
-  std::string res = Call("GET", false, url, "");
+  string url = "/time";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Fills
 //List Fills
-std:: string API::List_Fills(std::string order_id, std::string product_id)
+std:: string API::List_Fills(string order_id, string product_id)
 {
-  std::string url = "/fills?";
+  string url = "/fills?";
   if(order_id != ""){
     url += "order_id=" + order_id + "&";
   }
   if(product_id != ""){
     url += "product_id=" + product_id;
   }
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Payment Methods
 //List_Payment_Methods
-std::string API::List_Payment_Methods()
+string API::List_Payment_Methods()
 {
-  std::string url = "/payment-methods";
-  std::string res = Call("GET", true, url, "");
+  string url = "/payment-methods";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Coinbase Accounts
 //List Coinbase Accounts
-std::string API::List_Coinbase_Accounts()
+string API::List_Coinbase_Accounts()
 {
-  std::string url = "/coinbase-accounts";
-  std::string res = Call("GET", true, url, "");
+  string url = "/coinbase-accounts";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Limits
 //Get Current Exchange Limits
-std::string API::Get_Current_Exchange_Limits()
+string API::Get_Current_Exchange_Limits()
 {
-  std::string url = "/users/self/exchange-limits";
-  std::string res = Call("GET", true, url, "");
+  string url = "/users/self/exchange-limits";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Deposit
 //List Deposits
-std::string API::List_Deposits(std::string profile_id, std::string before, std::string after, std::string limit)
+string API::List_Deposits(string profile_id, string before, string after, string limit)
 {
-  std::string url = "/transfers?type=deposit";
+  string url = "/transfers?type=deposit";
   if(profile_id != ""){
     url += "profile_id=" + profile_id + "&";
   }
@@ -526,22 +527,22 @@ std::string API::List_Deposits(std::string profile_id, std::string before, std::
   if(limit != ""){
     url += "limit=" + limit;
   }
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Single Deposit
-std::string API::Single_Deposit(std::string transfer_id)
+string API::Single_Deposit(string transfer_id)
 {
-  std::string url = "/transfers/:" + transfer_id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/transfers/:" + transfer_id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Payment method
-std::string API::Payment_Method_Deposit(std::string amount, std::string currency, std::string payment_method_id)
+string API::Payment_Method_Deposit(string amount, string currency, string payment_method_id)
 {
   Document d;
   d.SetObject();
@@ -566,13 +567,13 @@ std::string API::Payment_Method_Deposit(std::string amount, std::string currency
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/deposits/payment-method", strbuf.GetString());
+  string res = Call("POST", true, "/deposits/payment-method", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Coinbase Deposit
-std::string API::Coinbase_Deposit(std::string amount, std::string currency, std::string coinbase_account_id)
+string API::Coinbase_Deposit(string amount, string currency, string coinbase_account_id)
 {
   Document d;
   d.SetObject();
@@ -597,25 +598,25 @@ std::string API::Coinbase_Deposit(std::string amount, std::string currency, std:
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/deposits/coinbase-account", strbuf.GetString());
+  string res = Call("POST", true, "/deposits/coinbase-account", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Generate a Crypto Deposit Address
-std::string API::Generate_Crypto_Deposit_Address(std::string coinbase_account_id)
+string API::Generate_Crypto_Deposit_Address(string coinbase_account_id)
 {
 
-  std::string res = Call("POST", true, "/coinbase-accounts/" + coinbase_account_id + "/addresses", "");
+  string res = Call("POST", true, "/coinbase-accounts/" + coinbase_account_id + "/addresses", "");
   std::cout << res ;
   return "";
 }
 
 //Withdraw
 //List Withdrawals
-std::string API::List_Withdrawals(std::string profile_id, std::string before, std::string after, std::string limit)
+string API::List_Withdrawals(string profile_id, string before, string after, string limit)
 {
-  std::string url = "/transfers?type=withdraw";
+  string url = "/transfers?type=withdraw";
   if(profile_id != ""){
     url += "profile_id=" + profile_id + "&";
   }
@@ -628,22 +629,22 @@ std::string API::List_Withdrawals(std::string profile_id, std::string before, st
   if(limit != ""){
     url += "limit=" + limit;
   }
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Single Withdrawal
-std::string API::Single_Withdrawal(std::string transfer_id)
+string API::Single_Withdrawal(string transfer_id)
 {
-  std::string url = "/transfers/:" + transfer_id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/transfers/:" + transfer_id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Payment method
-std::string API::Payment_Method_Withdraw(std::string amount, std::string currency, std::string payment_method_id)
+string API::Payment_Method_Withdraw(string amount, string currency, string payment_method_id)
 {
   Document d;
   d.SetObject();
@@ -668,13 +669,13 @@ std::string API::Payment_Method_Withdraw(std::string amount, std::string currenc
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/withdrawals/payment-method", strbuf.GetString());
+  string res = Call("POST", true, "/withdrawals/payment-method", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Coinbase Withdraw
-std::string API::Coinbase_Withdraw(std::string amount, std::string currency, std::string coinbase_account_id)
+string API::Coinbase_Withdraw(string amount, string currency, string coinbase_account_id)
 {
   Document d;
   d.SetObject();
@@ -699,13 +700,13 @@ std::string API::Coinbase_Withdraw(std::string amount, std::string currency, std
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/withdrawals/coinbase-account", strbuf.GetString());
+  string res = Call("POST", true, "/withdrawals/coinbase-account", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Crytop Withdraw
-std::string API::Crypto_Withdraw(std::string amount, std::string currency, std::string crypto_address, std::string destination_tag, std::string no_destination_tag, std::string add_network_fee_to_total)
+string API::Crypto_Withdraw(string amount, string currency, string crypto_address, string destination_tag, string no_destination_tag, string add_network_fee_to_total)
 {
   Document d;
   d.SetObject();
@@ -745,23 +746,23 @@ std::string API::Crypto_Withdraw(std::string amount, std::string currency, std::
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/withdrawals/crypto", strbuf.GetString());
+  string res = Call("POST", true, "/withdrawals/crypto", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Fee Estimate
-std::string API::Fee_Estimate(std::string currency, std::string crypto_address)
+string API::Fee_Estimate(string currency, string crypto_address)
 {
-  std::string url = "/withdrawals/fee-estimate?currency=" + currency + "&crypto_address" + crypto_address;
-  std::string res = Call("GET", true, url, "");
+  string url = "/withdrawals/fee-estimate?currency=" + currency + "&crypto_address" + crypto_address;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Stablecoin Conversions
 //Create Conversion
-std::string API::Create_Conversion(std::string from, std::string to, std::string amount)
+string API::Create_Conversion(string from, string to, string amount)
 {
   Document d;
   d.SetObject();
@@ -786,24 +787,24 @@ std::string API::Create_Conversion(std::string from, std::string to, std::string
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/conversions", strbuf.GetString());
+  string res = Call("POST", true, "/conversions", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Fees
 //Get Current Fees
-std::string API::Get_Current_Fees()
+string API::Get_Current_Fees()
 {
-  std::string url = "/fees";
-  std::string res = Call("GET", true, url, "");
+  string url = "/fees";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Reports
 //Create a new report
-std::string API::Create_new_report(std::string type, std::string start_date, std::string end_date, std::string product_id, std::string account_id, std::string format, std::string email)
+string API::Create_new_report(string type, string start_date, string end_date, string product_id, string account_id, string format, string email)
 {
   Document d;
   d.SetObject();
@@ -848,40 +849,40 @@ std::string API::Create_new_report(std::string type, std::string start_date, std
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/reports", strbuf.GetString());
+  string res = Call("POST", true, "/reports", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //Get report status
-std::string API::Get_report_status(std::string report_id)
+string API::Get_report_status(string report_id)
 {
-  std::string url = "/reports/:" + report_id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/reports/:" + report_id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //List Profiles
-std::string API::List_Profiles(std::string active)
+string API::List_Profiles(string active)
 {
-  std::string url = "/profiles";
-  std::string res = Call("GET", true, url, "");
+  string url = "/profiles";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get a Profile
-std::string API::Get_Profile(std::string profile_id)
+string API::Get_Profile(string profile_id)
 {
-  std::string url = "/profiles/" + profile_id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profiles/" + profile_id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Create profile transfer
-std::string API::Create_profile_transfer(std::string from, std::string to, std::string currency, std::string amount)
+string API::Create_profile_transfer(string from, string to, string currency, string amount)
 {
   Document d;
   d.SetObject();
@@ -911,17 +912,17 @@ std::string API::Create_profile_transfer(std::string from, std::string to, std::
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string res = Call("POST", true, "/profiles/transfer", strbuf.GetString());
+  string res = Call("POST", true, "/profiles/transfer", strbuf.GetString());
   std::cout << res ;
   return "";
 }
 
 //User Account
 //Trailing Volume
-std::string API::Trailing_Volume()
+string API::Trailing_Volume()
 {
-  std::string url = "/users/self/trailing-volume";
-  std::string res = Call("GET", true, url, "");
+  string url = "/users/self/trailing-volume";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }

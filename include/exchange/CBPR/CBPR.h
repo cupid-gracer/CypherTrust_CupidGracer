@@ -6,19 +6,21 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 class CBPR
 {
 public:
     CBPR();
     ~CBPR();
     /* Declare Variables */
-    std::string uri;
-    std::string product_id;
+    string uri;
+    string product_id;
     API api;
 
-    std::string Get_Buy_Price();
-    double Get_Balance(std::string currency);
-    std::string Place_Limit_Order(std::string side, std::string price, std::string size);
+    string Get_Buy_Price();
+    double Get_Balance(string currency);
+    string Place_Limit_Order(string side, string price, string size);
 
     // Accounts
     /*

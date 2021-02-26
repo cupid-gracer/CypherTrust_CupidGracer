@@ -1,4 +1,4 @@
-#include "STEX/API.h"
+#include "exchange/STEX/API.h"
 #include "Util.h"
 #include <vector>
 #include <iostream>
@@ -8,11 +8,12 @@
 #include "rapidjson/stringbuffer.h"
 
 using namespace rapidjson;
+using namespace std;
 
 /* Used by API::Call to put websource into a string type */
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-  ((std::string *)userp)->append((char *)contents, size * nmemb);
+  ((string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
 }
 
@@ -27,11 +28,11 @@ API::~API()
 }
 
 /* Uses libcurl to get Data From API */
-std::string API::Call(std::string method, bool authed, std::string path, std::string body)
+string API::Call(string method, bool authed, string path, string body)
 {
   CURL *curl;
   CURLcode res;
-  std::string readBuffer;
+  string readBuffer;
   curl = curl_easy_init();
   if (curl)
   {
@@ -74,10 +75,10 @@ std::string API::Call(std::string method, bool authed, std::string path, std::st
   return readBuffer;
 }
 
-std::string API::Get_Buy_Price()
+string API::Get_Buy_Price()
 {
-  std::string ret;
-  std::string st = Call("GET", false, "/products/" + product_id + "/book", "");
+  string ret;
+  string st = Call("GET", false, "/products/" + product_id + "/book", "");
   Document d;
   d.Parse(st.c_str());
   if (d.HasMember("message"))
@@ -97,10 +98,10 @@ std::string API::Get_Buy_Price()
   return ret;
 }
 
-double API::Get_Balance(std::string currency)
+double API::Get_Balance(string currency)
 {
   double ret = 0;
-  std::string txt = Call("GET", true, "/accounts", "");
+  string txt = Call("GET", true, "/accounts", "");
   Document d;
   d.Parse(txt.c_str());
   assert(d.IsArray());
@@ -108,7 +109,7 @@ double API::Get_Balance(std::string currency)
   {
     assert(d[i].HasMember("currency"));
     assert(d[i]["currency"].IsString());
-    std::string cur = d[i]["currency"].GetString();
+    string cur = d[i]["currency"].GetString();
     if (cur == currency)
     {
       assert(d[i].HasMember("available"));
@@ -120,9 +121,9 @@ double API::Get_Balance(std::string currency)
   return ret;
 }
 
-std::string API::Place_Limit_Order(std::string side, std::string price, std::string size)
+string API::Place_Limit_Order(string side, string price, string size)
 {
-  std::string order_id;
+  string order_id;
   Document d;
   d.SetObject();
   rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
@@ -157,7 +158,7 @@ std::string API::Place_Limit_Order(std::string side, std::string price, std::str
   StringBuffer strbuf;
   Writer<StringBuffer> writer(strbuf);
   d.Accept(writer);
-  std::string returned = Call("POST", true, "/orders", strbuf.GetString());
+  string returned = Call("POST", true, "/orders", strbuf.GetString());
   // std::cout << "returned = " << returned << std::endl;
   // std::cout << "returned strbuf.GetString = " << strbuf.GetString() << std::endl;
   Document d_1;
@@ -178,391 +179,391 @@ std::string API::Place_Limit_Order(std::string side, std::string price, std::str
 
 //Public
 // Available Currencies
-std::string API::Get_list_currencies()
+string API::Get_list_currencies()
 {
-  std::string res = Call("GET", false, "/public/currencies", "");
+  string res = Call("GET", false, "/public/currencies", "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Get currency info
-std::string API::Get_currency_info(std::string currencyId)
+string API::Get_currency_info(string currencyId)
 {
-  std::string url = "/public/currencies/" + currencyId;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/currencies/" + currencyId;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Available markets
-std::string API::Get_list_markets()
+string API::Get_list_markets()
 {
-  std::string url = "/public/markets/";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/markets/";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Get list of all avialable currency pairs groups
-std::string API::Get_list_currency_pairs_groups()
+string API::Get_list_currency_pairs_groups()
 {
-  std::string url = "/public/pairs-groups";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/pairs-groups";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Available currency pairs
-std::string API::Get_currency_pairs(std::string code)
+string API::Get_currency_pairs(string code)
 {
-  std::string url = "/public/currency_pairs/list/" + code;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/currency_pairs/list/" + code;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Available currency pairs for a given group
-std::string API::Get_currency_pairs_given_group(std::string currencyPairGroupId)
+string API::Get_currency_pairs_given_group(string currencyPairGroupId)
 {
-  std::string url = "/public/currency_pairs/group/" + currencyPairGroupId;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/currency_pairs/group/" + currencyPairGroupId;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Get currency pair information
-std::string API::Get_currency_pair_information(std::string currencyPairId)
+string API::Get_currency_pair_information(string currencyPairId)
 {
-  std::string url = "/public/currency_pairs/" + currencyPairId;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/currency_pairs/" + currencyPairId;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Tickers list for all currency pairs
-std::string API::Get_ticker_list_currency_pairs()
+string API::Get_ticker_list_currency_pairs()
 {
-  std::string url = "/public/ticker";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/ticker";
+  string res = Call("GET", false, url, "");
   // std::cout << res << std::endl;
   return res;
 }
 
 // Ticker for currency pair
-std::string API::Get_ticker_currency_pair(std::string currencyPairId)
+string API::Get_ticker_currency_pair(string currencyPairId)
 {
-  std::string url = "/public/ticker/" + currencyPairId;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/ticker/" + currencyPairId;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Trades for given currency pair
-std::string API::Get_trades_currency_pair(std::string currencyPairId, std::string sort, std::string from, std::string till, std::string limit, std::string offset)
+string API::Get_trades_currency_pair(string currencyPairId, string sort, string from, string till, string limit, string offset)
 {
-  std::string url = "/public/trades/" + currencyPairId;
+  string url = "/public/trades/" + currencyPairId;
   url += "?sort=" + sort;
   url += "&from=" + from;
   url += "&till=" + till;
   url += "&limit=" + limit;
-  std::string res = Call("GET", false, url, "");
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Orderbook for given currency pair
-std::string API::Get_orderbook_currency_pair(std::string currencyPairId, std::string limit_bids, std::string limit_asks)
+string API::Get_orderbook_currency_pair(string currencyPairId, string limit_bids, string limit_asks)
 {
-  std::string url = "/public/orderbook/" + currencyPairId;
+  string url = "/public/orderbook/" + currencyPairId;
   url += "?limit_bids=" + limit_bids;
   url += "&limit_asks=" + limit_asks;
-  std::string res = Call("GET", false, url, "");
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // A list of candles for given currency pair
-std::string API::Get_list_candles_currency_pair(std::string currencyPairId, std::string candlesType, std::string timeStart, std::string timeEnd, std::string limit, std::string offset)
+string API::Get_list_candles_currency_pair(string currencyPairId, string candlesType, string timeStart, string timeEnd, string limit, string offset)
 {
-  std::string url = "/public/trades/" + currencyPairId + "/" + candlesType;
+  string url = "/public/trades/" + currencyPairId + "/" + candlesType;
   url += "?timeStart=" + timeStart;
   url += "&timeEnd=" + timeEnd;
   url += "&limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", false, url, "");
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Available Deposit Statuses
-std::string API::Get_list_deposit_statuses()
+string API::Get_list_deposit_statuses()
 {
-  std::string url = "/public/deposit-statuses";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/deposit-statuses";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Get deposit status info
-std::string API::Get_deposit_status(std::string statusId)
+string API::Get_deposit_status(string statusId)
 {
-  std::string url = "/public/deposit-statuses/" + statusId;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/deposit-statuses/" + statusId;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Available Withdrawal Statuses
-std::string API::Get_list_withdrawal_statuses()
+string API::Get_list_withdrawal_statuses()
 {
-  std::string url = "/public/withdrawal-statuses";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/withdrawal-statuses";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Get status info
-std::string API::Get_withdrawal_status(std::string statusId)
+string API::Get_withdrawal_status(string statusId)
 {
-  std::string url = "/public/withdrawal-statuses/" + statusId;
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/withdrawal-statuses/" + statusId;
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Test API is working and get server time
-std::string API::ping()
+string API::ping()
 {
-  std::string url = "/public/ping";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/ping";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Shows the official mobile applications data
-std::string API::Get_mobile_version()
+string API::Get_mobile_version()
 {
-  std::string url = "/public/mobile-versions";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/mobile-versions";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 // Get the last 20 posts (stex.com) on Twitter
-std::string API::Get_twitter()
+string API::Get_twitter()
 {
-  std::string url = "/public/twitter";
-  std::string res = Call("GET", false, url, "");
+  string url = "/public/twitter";
+  string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Trading
 //Returns the user's fees for a given currency pair
-std::string API::Get_user_fee_currency_pair(std::string currencyPairId)
+string API::Get_user_fee_currency_pair(string currencyPairId)
 {
-  std::string url = "/trading/fees/" + currencyPairId;
-  std::string res = Call("GET", true, url, "");
+  string url = "/trading/fees/" + currencyPairId;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //List your currently open orders
-std::string API::Get_list_open_all_orders(std::string limit, std::string offset)
+string API::Get_list_open_all_orders(string limit, string offset)
 {
-  std::string url = "/trading/orders";
+  string url = "/trading/orders";
   url += "?limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Delete all active orders
-std::string API::Delete_all_active_orders()
+string API::Delete_all_active_orders()
 {
-  std::string url = "/trading/orders/";
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/trading/orders/";
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //List your currently open orders for given currency pair
-std::string API::Get_list_open_order_by_currency_pair(std::string currencyPairId, std::string limit, std::string offset)
+string API::Get_list_open_order_by_currency_pair(string currencyPairId, string limit, string offset)
 {
-  std::string url = "/trading/orders/" + currencyPairId;
+  string url = "/trading/orders/" + currencyPairId;
   url += "?limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Delete active orders for given currency pair
-std::string API::Delete_order_by_currency_pair(std::string currencyPairId)
+string API::Delete_order_by_currency_pair(string currencyPairId)
 {
-  std::string url = "/trading/orders/" + currencyPairId;
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/trading/orders/" + currencyPairId;
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Create new order and put it to the orders processing queue
-std::string API::Creat_new_order(std::string currencyPairId, std::string type, std::string amount, std::string price, std::string trigger_price)
+string API::Creat_new_order(string currencyPairId, string type, string amount, string price, string trigger_price)
 {
-  std::string url = "/trading/orders/" + currencyPairId;
-  std::string body = "type=" + type;
+  string url = "/trading/orders/" + currencyPairId;
+  string body = "type=" + type;
   body += "&amount=" + amount;
   body += "&price=" + price;
   body += "&trigger_price=" + trigger_price;
-  std::string res = Call("POST", true, url, body);
+  string res = Call("POST", true, url, body);
 
   std::cout << res << std::endl;
   return "";
 }
 
 //Get a single order
-std::string API::Get_single_order(std::string orderId)
+string API::Get_single_order(string orderId)
 {
-  std::string url = "/trading/orders/" + orderId;
-  std::string res = Call("GET", true, url, "");
+  string url = "/trading/orders/" + orderId;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Cancel order
-std::string API::Delete_order(std::string orderId)
+string API::Delete_order(string orderId)
 {
-  std::string url = "/trading/orders/" + orderId;
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/trading/orders/" + orderId;
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get a list of currencies user had any activity in
-std::string API::Get_list_currency_user_activity(std::string key)
+string API::Get_list_currency_user_activity(string key)
 {
-  std::string url = "/reports/currencies?key=" + key;
-  std::string res = Call("GET", true, url, "");
+  string url = "/reports/currencies?key=" + key;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Gets the list of currency pairs the user had orders in for all the time
-std::string API::Get_list_all_currencypairs_by_user()
+string API::Get_list_all_currencypairs_by_user()
 {
-  std::string url = "/reports/currency_pairs";
-  std::string res = Call("GET", true, url, "");
+  string url = "/reports/currency_pairs";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get past orders
-std::string API::Get_past_orders(std::string currencyPairId, std::string orderStatus, std::string timeStart, std::string timeEnd, std::string limit, std::string offset)
+string API::Get_past_orders(string currencyPairId, string orderStatus, string timeStart, string timeEnd, string limit, string offset)
 {
-  std::string url = "/reports/orders";
+  string url = "/reports/orders";
   url += "?currencyPairId=" + currencyPairId;
   url += "&orderStatus=" + orderStatus;
   url += "&timeStart=" + timeStart;
   url += "&timeEnd=" + timeEnd;
   url += "&limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get specified order details
-std::string API::Get_order_details(std::string orderId)
+string API::Get_order_details(string orderId)
 {
-  std::string url = "/reports/orders/" + orderId;
-  std::string res = Call("GET", true, url, "");
+  string url = "/reports/orders/" + orderId;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get a list of user trades according to request parameters
-std::string API::Get_list_user_spec_trades(std::string currencyPairId, std::string timeStart, std::string timeEnd, std::string limit, std::string offset)
+string API::Get_list_user_spec_trades(string currencyPairId, string timeStart, string timeEnd, string limit, string offset)
 {
-  std::string url = "/reports/trades";
+  string url = "/reports/trades";
   url += "?currencyPairId=" + currencyPairId;
   url += "&timeStart=" + timeStart;
   url += "&timeEnd=" + timeEnd;
   url += "&limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get reports list for category
-std::string API::Get_reports_list_category(std::string listMode, std::string limit, std::string offset)
+string API::Get_reports_list_category(string listMode, string limit, string offset)
 {
-  std::string url = "/reports/background/" + listMode;
+  string url = "/reports/background/" + listMode;
   url += "&limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get some report info
-std::string API::Get_report_info(std::string id)
+string API::Get_report_info(string id)
 {
-  std::string url = "/reports/background/" + id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/reports/background/" + id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Remove report by id
-std::string API::Delete_report_by_id(std::string id)
+string API::Delete_report_by_id(string id)
 {
-  std::string url = "/reports/background/" + id;
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/reports/background/" + id;
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Create new report
-std::string API::Create_new_report(std::string name, std::string date_from, std::string date_to, std::string format, std::string type)
+string API::Create_new_report(string name, string date_from, string date_to, string format, string type)
 {
-  std::string url = "/reports/background/create";
-  std::string body = "name=" + name;
+  string url = "/reports/background/create";
+  string body = "name=" + name;
   body += "&date_from=" + date_from;
   body += "&date_to=" + date_to;
   body += "&format=" + format;
   body += "&type=" + type;
-  std::string res = Call("POST", true, url, body);
+  string res = Call("POST", true, url, body);
 
   std::cout << res << std::endl;
   return "";
 }
 
 //Get file by id
-std::string API::Get_file_by_id(std::string id)
+string API::Get_file_by_id(string id)
 {
-  std::string url = "/reports/background/download/" + id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/reports/background/download/" + id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Settings
 //User event notification settings
-std::string API::Get_list_notification_by_event(std::string event)
+string API::Get_list_notification_by_event(string event)
 {
-  std::string url = "/settings/notifications/" + event;
-  std::string res = Call("GET", true, url, "");
+  string url = "/settings/notifications/" + event;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //User event notification settings
-std::string API::Get_list_notification()
+string API::Get_list_notification()
 {
-  std::string url = "/settings/notifications";
-  std::string res = Call("GET", true, url, "");
+  string url = "/settings/notifications";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -574,22 +575,22 @@ std::string API::Get_list_notification()
     value *     integer(query)	1 - to subscribe to the notifications of the given event in the specified channel, 0 - to remove subscription of the specified event in the specified channel 
     Available values : 0, 1
     */
-std::string API::Set_notification_settings(std::string event, std::string channel, std::string value)
+string API::Set_notification_settings(string event, string channel, string value)
 {
-  std::string url = "/settings/notifications?";
+  string url = "/settings/notifications?";
   url += "event=" + event;
   url += "&channel=" + channel;
   url += "&value=" + value;
-  std::string res = Call("PUT", true, url, "");
+  string res = Call("PUT", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Set notification settings
-std::string API::Set_notification_settings_one_request()
+string API::Set_notification_settings_one_request()
 {
-  std::string url = "/settings/notifications/set";
-  std::string res = Call("PUT", true, url, "");
+  string url = "/settings/notifications/set";
+  string res = Call("PUT", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -599,10 +600,10 @@ std::string API::Set_notification_settings_one_request()
 /*
     show_balances   string(query)	if present and is > 0, the response will include the 'approx_balance' section. It will be returned as null if this parameter is not present or is not positive number
     */
-std::string API::Get_accoutn_information(std::string show_balances)
+string API::Get_accoutn_information(string show_balances)
 {
-  std::string url = "/profile/info?show_balances=" + show_balances;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/info?show_balances=" + show_balances;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -612,30 +613,30 @@ std::string API::Get_accoutn_information(std::string show_balances)
     sort string(query)	Sort direction. Available values : DESC, ASC  Default value : DESC 
     sortBy  string(query)	Sort direction.    Available values : BALANCE, FROZEN, BONUS, HOLD, TOTAL  Default value : BALANCE
     */
-std::string API::Get_list_user_wallets(std::string sort, std::string sortBy)
+string API::Get_list_user_wallets(string sort, string sortBy)
 {
-  std::string url = "/profile/wallets";
+  string url = "/profile/wallets";
   url += "?sort=" + sort;
   url += "&sortBy=" + sortBy;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Single wallet information
-std::string API::Get_single_user_wallet(std::string walletId)
+string API::Get_single_user_wallet(string walletId)
 {
-  std::string url = "/profile/wallets/" + walletId;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/wallets/" + walletId;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Burns the given wallet
-std::string API::Burn_wallet(std::string walletId)
+string API::Burn_wallet(string walletId)
 {
-  std::string url = "/profile/wallets/burn/" + walletId;
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/wallets/burn/" + walletId;
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -644,12 +645,12 @@ std::string API::Burn_wallet(std::string walletId)
 /*
     protocol_id integer(query)	Default value : The value that represents legacy protocol (in case of USDT it is 10 as Tether OMNI was default before multi-currency approach used). The list of values can be obtained from the /public/currencies/{currencyId} endpoint that returns the list of all available protocols for a given currency
     */
-std::string API::Create_wallet(std::string currencyId, std::string protocol_id)
+string API::Create_wallet(string currencyId, string protocol_id)
 {
-  std::string url = "/profile/wallets/" + currencyId;
+  string url = "/profile/wallets/" + currencyId;
   if (protocol_id != "")
     url += "?protocol_id=" + protocol_id;
-  std::string res = Call("POST", true, url, "");
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -658,12 +659,12 @@ std::string API::Create_wallet(std::string currencyId, std::string protocol_id)
 /*
     protocol_id integer(query)	Default value : The value that represents legacy protocol (in case of USDT it is 10 as Tether OMNI was default before multi-currency approach used). The list of values can be obtained from the /public/currencies/{currencyId} endpoint that returns the list of all available protocols for a given currency
     */
-std::string API::Get_deposit_address_wallet(std::string walletId, std::string protocol_id)
+string API::Get_deposit_address_wallet(string walletId, string protocol_id)
 {
-  std::string url = "/profile/wallets/address/" + walletId;
+  string url = "/profile/wallets/address/" + walletId;
   if (protocol_id != "")
     url += "?protocol_id=" + protocol_id;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -672,12 +673,12 @@ std::string API::Get_deposit_address_wallet(std::string walletId, std::string pr
 /*
     protocol_id integer(query)	Default value : The value that represents legacy protocol (in case of USDT it is 10 as Tether OMNI was default before multi-currency approach used). The list of values can be obtained from the /public/currencies/{currencyId} endpoint that returns the list of all available protocols for a given currency
     */
-std::string API::Create_new_deposit_address(std::string walletId, std::string protocol_id)
+string API::Create_new_deposit_address(string walletId, string protocol_id)
 {
-  std::string url = "/profile/wallets/address/" + walletId;
+  string url = "/profile/wallets/address/" + walletId;
   if (protocol_id != "")
     url += "?protocol_id=" + protocol_id;
-  std::string res = Call("POST", true, url, "");
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -692,9 +693,9 @@ std::string API::Create_new_deposit_address(std::string walletId, std::string pr
     limit       integer(query)	Default value : 100
     offset      integer(query)	
     */
-std::string API::Get_list_user_deposit(std::string currencyId, std::string sort, std::string timeStart, std::string timeEnd, std::string limit, std::string offset)
+string API::Get_list_user_deposit(string currencyId, string sort, string timeStart, string timeEnd, string limit, string offset)
 {
-  std::string url = "/profile/deposits?";
+  string url = "/profile/deposits?";
   if (currencyId != "")
     url += "currencyId=" + currencyId + "&";
   if (sort != "")
@@ -707,16 +708,16 @@ std::string API::Get_list_user_deposit(std::string currencyId, std::string sort,
     url += "limit=" + limit + "&";
   if (offset != "")
     url += "offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get deposit by id
-std::string API::Get_deposit(std::string id)
+string API::Get_deposit(string id)
 {
-  std::string url = "/profile/deposits/" + id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/deposits/" + id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -731,9 +732,9 @@ std::string API::Get_deposit(std::string id)
     limit       integer(query)	Default value : 100
     offset      integer(query)	
     */
-std::string API::Get_list_rewards(std::string currencyId, std::string sort, std::string timeStart, std::string timeEnd, std::string limit, std::string offset)
+string API::Get_list_rewards(string currencyId, string sort, string timeStart, string timeEnd, string limit, string offset)
 {
-  std::string url = "/profile/rewards?";
+  string url = "/profile/rewards?";
   if (currencyId != "")
     url += "currencyId=" + currencyId + "&";
   if (sort != "")
@@ -746,79 +747,79 @@ std::string API::Get_list_rewards(std::string currencyId, std::string sort, std:
     url += "limit=" + limit + "&";
   if (offset != "")
     url += "offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get reward by id
-std::string API::Get_reward(std::string id)
+string API::Get_reward(string id)
 {
-  std::string url = "/profile/rewards/" + id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/rewards/" + id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get a list of user address book items
-std::string API::Get_list_user_address()
+string API::Get_list_user_address()
 {
-  std::string url = "/profile/addressbook/";
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/addressbook/";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Single address book item
-std::string API::Get_single_address(std::string itemId)
+string API::Get_single_address(string itemId)
 {
-  std::string url = "/profile/addressbook/" + itemId;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/addressbook/" + itemId;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Deletes address book item
-std::string API::Delete_address_book(std::string itemId)
+string API::Delete_address_book(string itemId)
 {
-  std::string url = "/profile/addressbook/" + itemId;
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/profile/addressbook/" + itemId;
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Disables the address book item
-std::string API::Disable_address_book_item(std::string itemId)
+string API::Disable_address_book_item(string itemId)
 {
-  std::string url = "/profile/addressbook/disable_item/" + itemId;
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/addressbook/disable_item/" + itemId;
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Enable the address book item
-std::string API::Enable_address_book_item(std::string itemId)
+string API::Enable_address_book_item(string itemId)
 {
-  std::string url = "/profile/addressbook/enable_item/" + itemId;
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/addressbook/enable_item/" + itemId;
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Restrict the withdrawals to only addresses that are active in addressbook
-std::string API::Restrict_withdrawal_addressbook()
+string API::Restrict_withdrawal_addressbook()
 {
-  std::string url = "/profile/addressbook/enable_strict_wd/";
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/addressbook/enable_strict_wd/";
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Remove restriction to withdraw to only addresses that are active in addressbook. E.g. allow to withdraw to any address.
-std::string API::Allow_withdrawal_addressbook()
+string API::Allow_withdrawal_addressbook()
 {
-  std::string url = "/profile/addressbook/disable_strict_wd/";
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/addressbook/disable_strict_wd/";
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -833,9 +834,9 @@ std::string API::Allow_withdrawal_addressbook()
     limit       integer(query)	Default value : 100
     offset      integer(query)	
     */
-std::string API::Get_list_withdrawal(std::string currencyId, std::string sort, std::string timeStart, std::string timeEnd, std::string limit, std::string offset)
+string API::Get_list_withdrawal(string currencyId, string sort, string timeStart, string timeEnd, string limit, string offset)
 {
-  std::string url = "/profile/withdrawals?";
+  string url = "/profile/withdrawals?";
   if (currencyId != "")
     url += "currencyId=" + currencyId + "&";
   if (sort != "")
@@ -848,16 +849,16 @@ std::string API::Get_list_withdrawal(std::string currencyId, std::string sort, s
     url += "limit=" + limit + "&";
   if (offset != "")
     url += "offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get withdrawal by id
-std::string API::Get_withdrawal(std::string id)
+string API::Get_withdrawal(string id)
 {
-  std::string url = "/profile/withdrawals/" + id;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/withdrawals/" + id;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -868,10 +869,10 @@ std::string API::Get_withdrawal(std::string id)
     additional_address_parameter    string  If withdrawal address requires the payment ID or some key or destination tag etc pass it here
     one_time_code   string  Optional Google Authenticator one-time code
     */
-std::string API::Create_withdrawal_request(std::string currencyId, std::string amount, std::string address, std::string protocol_id, std::string additional_address_parameter, std::string one_time_code)
+string API::Create_withdrawal_request(string currencyId, string amount, string address, string protocol_id, string additional_address_parameter, string one_time_code)
 {
-  std::string url = "/profile/withdraw";
-  std::string body = "";
+  string url = "/profile/withdraw";
+  string body = "";
   body += "currency_id=" + currencyId + "&";
   body += "amount=" + amount + "&";
   body += "address=" + address + "&";
@@ -881,36 +882,36 @@ std::string API::Create_withdrawal_request(std::string currencyId, std::string a
     body += "additional_address_parameter=" + additional_address_parameter + "&";
   if (one_time_code != "")
     body += "one_time_code=" + one_time_code;
-  std::string res = Call("POST", true, url, body);
+  string res = Call("POST", true, url, body);
   std::cout << res << std::endl;
   return "";
 }
 
 //Cancel unconfirmed withdrawal
-std::string API::Cancel_unconfirmed_withdrawal(std::string withdrawalId)
+string API::Cancel_unconfirmed_withdrawal(string withdrawalId)
 {
-  std::string url = "/profile/withdraw/" + withdrawalId;
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/profile/withdraw/" + withdrawalId;
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get notifications
-std::string API::Get_notifications(std::string limit , std::string offset )
+string API::Get_notifications(string limit , string offset )
 {
-  std::string url = "/profile/notifications";
+  string url = "/profile/notifications";
   url += "?limit=" + limit;
   url += "&offset=" + offset;
-  std::string res = Call("GET", true, url, "");
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get a list of active price alerts
-std::string API::Get_list_active_price_alert(std::string currencyPairId)
+string API::Get_list_active_price_alert(string currencyPairId)
 {
-  std::string url = "/profile/notifications/price?" + currencyPairId;
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/notifications/price?" + currencyPairId;
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -919,59 +920,59 @@ std::string API::Get_list_active_price_alert(std::string currencyPairId)
 /*
     comparison *    string      One of the 'GREATER' or 'LESS'
     */
-std::string API::Create_new_price_alert(std::string currencyPairId, std::string comarison, std::string price)
+string API::Create_new_price_alert(string currencyPairId, string comarison, string price)
 {
-  std::string url = "/profile/notifications/price";
-  std::string body = "";
+  string url = "/profile/notifications/price";
+  string body = "";
   body += "currencyPairId=" + currencyPairId;
   body += "&comarison=" + comarison;
   body += "&price=" + price;
-  std::string res = Call("POST", true, url, body);
+  string res = Call("POST", true, url, body);
   std::cout << res << std::endl;
   return "";
 }
 
 //Delete the price alert by ID
-std::string API::Delete_price_alert(std::string priceAlertId)
+string API::Delete_price_alert(string priceAlertId)
 {
-  std::string url = "/profile/notifications/price/" + priceAlertId;
-  std::string res = Call("DELETE", true, url, "");
+  string url = "/profile/notifications/price/" + priceAlertId;
+  string res = Call("DELETE", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Create referral program
-std::string API::Create_referral_program()
+string API::Create_referral_program()
 {
-  std::string url = "/profile/referral/program";
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/referral/program";
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Insert referral code
-std::string API::Insert_referral_code(std::string code)
+string API::Insert_referral_code(string code)
 {
-  std::string url = "/profile/referral/insert/" + code;
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/referral/insert/" + code;
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Transfer referral bonuses balance to main balance for given currency
-std::string API::Transfer_referral_bonuses(std::string currencyId)
+string API::Transfer_referral_bonuses(string currencyId)
 {
-  std::string url = "/profile/referral/bonus_transfer/" + currencyId;
-  std::string res = Call("POST", true, url, "");
+  string url = "/profile/referral/bonus_transfer/" + currencyId;
+  string res = Call("POST", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get favorite currency pairs
-std::string API::Get_fav_currency_pair()
+string API::Get_fav_currency_pair()
 {
-  std::string url = "/profile/favorite/currency_pairs";
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/favorite/currency_pairs";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
@@ -982,11 +983,11 @@ std::string API::Get_fav_currency_pair()
     removePairIds   array[integer](query)	remove ids of currency pairs from list (1,2,3....)
     show        boolean(query)
     */
-std::string API::Set_fav_currency_pair(std::string addPairIds, std::string removePairIds, std::string show)
+string API::Set_fav_currency_pair(string addPairIds, string removePairIds, string show)
 {
-  std::string body = "";
-  std::vector<std::string> v_addPairIds;
-  std::vector<std::string> v_removePairIds;
+  string body = "";
+  std::vector<string> v_addPairIds;
+  std::vector<string> v_removePairIds;
   util.split(addPairIds, ',', v_addPairIds);
   util.split(removePairIds, ',', v_removePairIds);
   for(int i = 0; i < v_addPairIds.size(); i ++){
@@ -997,17 +998,17 @@ std::string API::Set_fav_currency_pair(std::string addPairIds, std::string remov
   }
     body += "show=" + show;
 
-  std::string url = "/profile/favorite/currency_pairs/set";
-  std::string res = Call("PUT", true, url, "");
+  string url = "/profile/favorite/currency_pairs/set";
+  string res = Call("PUT", true, url, "");
   std::cout << res << std::endl;
   return "";
 }
 
 //Get current token scopes
-std::string API::Get_current_token_scopes()
+string API::Get_current_token_scopes()
 {
-  std::string url = "/profile/token-scopes";
-  std::string res = Call("GET", true, url, "");
+  string url = "/profile/token-scopes";
+  string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
   return "";
 }

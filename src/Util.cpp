@@ -9,8 +9,9 @@
 #include <algorithm>
 
 // using namespace rapidjson;
+using namespace std;
 
-std::string Util::GetTimestamp()
+string Util::GetTimestamp()
 {
     time_t t = time(0);
     return std::to_string(t);
@@ -21,7 +22,7 @@ std::string Util::GetTimestamp()
 // 1. String 
 // 2. Starting index of the string 
 // 3. Ending index of the string. 
-void Util::permutation(std::string a, int l, int r) 
+void Util::permutation(string a, int l, int r) 
 { 
     // Base case 
     if (l == r)
@@ -45,12 +46,12 @@ void Util::permutation(std::string a, int l, int r)
 }
 
 
-void Util::split(std::string &str, char delim, std::vector<std::string> &out)
+void Util::split(string &str, char delim, std::vector<string> &out)
 {
 	size_t start;
 	size_t end = 0;
 
-	while ((start = str.find_first_not_of(delim, end)) != std::string::npos)
+	while ((start = str.find_first_not_of(delim, end)) != string::npos)
 	{
 		end = str.find(delim, start);
 		out.push_back(str.substr(start, end - start));

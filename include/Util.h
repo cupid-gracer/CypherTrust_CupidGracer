@@ -10,6 +10,8 @@
 #include <thread>
 #include <algorithm>
 
+using namespace std;
+
 class Util
 {
 public:

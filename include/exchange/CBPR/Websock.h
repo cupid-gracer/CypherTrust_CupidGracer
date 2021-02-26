@@ -8,19 +8,21 @@
 #include <string>
 #include <shared_mutex>
 
+using namespace std;
+
 class Websock
 {
 private:
   web::websockets::client::websocket_callback_client client;
   void message_handler(web::websockets::client::websocket_incoming_message msg);
-  void send_message(std::string to_send);
-  std::string subscribe(bool sub);
+  void send_message(string to_send);
+  string subscribe(bool sub);
   std::vector<double> buy_prices;
   std::vector<double> sell_prices;
   std::shared_mutex buy_mut, sell_mut;
-  std::vector<std::string> Channels;
-  std::string Product_id;
-  std::string Uri;
+  std::vector<string> Channels;
+  string Product_id;
+  string Uri;
   bool is_connected;
 
 public:
@@ -30,7 +32,7 @@ public:
 
   void Connect();
   void Disconnect();
-  Websock(std::vector<std::string> channels, std::string product_id, std::string uri);
+  Websock(std::vector<string> channels, string product_id, string uri);
   ~Websock();
 };
 #endif // WEBSOCK_H

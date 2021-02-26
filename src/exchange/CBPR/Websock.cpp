@@ -5,14 +5,16 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 #include <shared_mutex>
+
 using namespace rapidjson;
+using namespace std;
 
 void Websock::message_handler(web::websockets::client::websocket_incoming_message msg)
 {
-    std::string input = msg.extract_string().get();
+    string input = msg.extract_string().get();
     Document d;
     d.Parse(input.c_str());
-    std::string type = d["type"].GetString();
+    string type = d["type"].GetString();
     if (type == "snapshot")
     {
         const Value &bids = d["bids"];
@@ -39,7 +41,7 @@ void Websock::message_handler(web::websockets::client::websocket_incoming_messag
         {
             assert(changes[i].IsArray());
             double price = std::stod(changes[i][1].GetString());
-            std::string side = changes[i][0].GetString();
+            string side = changes[i][0].GetString();
             if (side == "buy")
             {
                 std::unique_lock<std::shared_mutex> lock(buy_mut);
@@ -60,14 +62,14 @@ void Websock::message_handler(web::websockets::client::websocket_incoming_messag
     }
 }
 
-void Websock::send_message(std::string to_send)
+void Websock::send_message(string to_send)
 {
     web::websockets::client::websocket_outgoing_message out_msg;
     out_msg.set_utf8_message(to_send);
     client.send(out_msg).wait();
 }
 
-std::string Websock::subscribe(bool sub)
+string Websock::subscribe(bool sub)
 {
     Document d;
     d.SetObject();
@@ -80,7 +82,7 @@ std::string Websock::subscribe(bool sub)
     product_ids.PushBack(Value().SetString(StringRef(Product_id.c_str())), allocator);
     d.AddMember("product_ids", product_ids, allocator);
     Value channels(kArrayType);
-    for (std::string &channel : Channels)
+    for (string &channel : Channels)
         channels.PushBack(Value().SetString(StringRef(channel.c_str())), allocator);
     d.AddMember("channels", channels, allocator);
     StringBuffer strbuf;
@@ -127,7 +129,7 @@ void Websock::Disconnect()
     is_connected = false;
 }
 
-Websock::Websock(std::vector<std::string> channels, std::string product_id, std::string uri)
+Websock::Websock(std::vector<string> channels, string product_id, string uri)
 {
     Channels = channels;
     Product_id = product_id;

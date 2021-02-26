@@ -6,20 +6,22 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 class API
 {
 private:
-    std::string Call(std::string method, bool authed, std::string path, std::string body);
+    string Call(string method, bool authed, string path, string body);
 
 public:
     API();
     ~API();
     Auth auth;
-    std::string uri;
-    std::string product_id;
-    std::string Get_Buy_Price();
-    double Get_Balance(std::string currency);
-    std::string Place_Limit_Order(std::string side, std::string price, std::string size);
+    string uri;
+    string product_id;
+    string Get_Buy_Price();
+    double Get_Balance(string currency);
+    string Place_Limit_Order(string side, string price, string size);
 
     // Accounts
     /*
@@ -28,7 +30,7 @@ public:
   Summary:
       Get a list of trading accounts from the profile of the API key.
   */
-    std::string Get_List_Accounts();
+    string Get_List_Accounts();
 
     /*
   Name:
@@ -36,7 +38,7 @@ public:
   Summary:
       Information for a single account. Use this endpoint when you know the account_id. API key must belong to the same profile as the account.
   */
-    std::string Get_Account(std::string account_id);
+    string Get_Account(string account_id);
 
     /*
   Name:
@@ -44,7 +46,7 @@ public:
   Summary:
       List account activity of the API key's profile. Account activity either increases or decreases your account balance. Items are paginated and sorted latest first. See the Pagination section for retrieving additional entries after the first page.    
   */
-    std::string Get_Account_History(std::string account_id);
+    string Get_Account_History(string account_id);
 
     /*
   Name:
@@ -52,7 +54,7 @@ public:
   Summary:
       List holds of an account that belong to the same profile as the API key. Holds are placed on an account for any active orders or pending withdraw requests. As an order is filled, the hold amount is updated. If an order is canceled, any remaining hold is removed. For a withdraw, once it is completed, the hold is removed.
   */
-    std::string Get_Holds(std::string account_id);
+    string Get_Holds(string account_id);
 
     //Orders
     /*
@@ -80,7 +82,7 @@ public:
       size	      [optional]* Desired amount in base currency
       funds	      [optional]* Desired amount of quote currency to use
   */
-    std::string Place_New_Order(std::string side, std::string price, std::string size, std::string client_oid = "", std::string type = "limit", std::string stp = "dc", std::string stop = "", std::string stop_price = "", std::string time_in_force = "GTC", std::string cancel_after = "", bool post_only = true, std::string funds = "");
+    string Place_New_Order(string side, string price, string size, string client_oid = "", string type = "limit", string stp = "dc", string stop = "", string stop_price = "", string time_in_force = "GTC", string cancel_after = "", bool post_only = true, string funds = "");
 
     /*
   Name:
@@ -91,7 +93,7 @@ public:
       isOid = false; =>    request URL = DELETE /orders/<id>
       isOid = true;  =>    request URL = DELETE /orders/client:<client_oid>
   */
-    std::string Cancel_Order(std::string oid, bool isOid = false);
+    string Cancel_Order(string oid, bool isOid = false);
 
     /*
   Name:
@@ -99,7 +101,7 @@ public:
   Summary:
       With best effort, cancel all open orders from the profile that the API key belongs to. The response is a list of ids of the canceled orders.
   */
-    std::string Cancel_All_Order();
+    string Cancel_All_Order();
 
     /*
   Name:
@@ -107,7 +109,7 @@ public:
   Summary:
       List your current open orders from the profile that the API key belongs to. Only open or un-settled orders are returned.
   */
-    std::string List_Orders(std::string product_id = "", bool isOpen = false, bool isPending = false, bool isActive = false);
+    string List_Orders(string product_id = "", bool isOpen = false, bool isPending = false, bool isActive = false);
 
     /*
   Name:
@@ -118,7 +120,7 @@ public:
       isOid = false; =>    request URL = GET /orders/<id>
       isOid = true;  =>    request URL = GET /orders/client:<client_oid>
   */
-    std::string Get_Order(std::string oid, bool isOid = false);
+    string Get_Order(string oid, bool isOid = false);
 
     // Products
     /*
@@ -127,7 +129,7 @@ public:
   Summary:
       Get a list of available currency pairs for trading.
   */
-    std::string Get_Products();
+    string Get_Products();
 
     /*
   Name:
@@ -135,7 +137,7 @@ public:
   Summary:
       Get market data for a specific currency pair.
   */
-    std::string Get_Single_Product();
+    string Get_Single_Product();
 
     /*
   Name:
@@ -143,7 +145,7 @@ public:
   Summary:
       Get a list of open orders for a product. The amount of detail shown can be customized with the level parameter.
   */
-    std::string Get_Product_Order_Book();
+    string Get_Product_Order_Book();
 
     /*
   Name:
@@ -151,7 +153,7 @@ public:
   Summary:
       Snapshot information about the last trade (tick), best bid/ask and 24h volume.
   */
-    std::string Get_Product_Ticker();
+    string Get_Product_Ticker();
 
     /*
   Name:
@@ -159,7 +161,7 @@ public:
   Summary:
       List the latest trades for a product.
   */
-    std::string Get_Trades();
+    string Get_Trades();
 
     /*
   Name:
@@ -167,7 +169,7 @@ public:
   Summary:
       Historic rates for a product. Rates are returned in grouped buckets based on requested granularity.
   */
-    std::string Get_Historic_Rates();
+    string Get_Historic_Rates();
 
     /*
   Name:
@@ -175,7 +177,7 @@ public:
   Summary:
       Get 24 hr stats for the product. volume is in base currency units. open, high, low are in quote currency units.
   */
-    std::string Get_24hr_Stats();
+    string Get_24hr_Stats();
 
     //Currencies
     /*
@@ -184,7 +186,7 @@ public:
   Summary:
       List known currencies.
   */
-    std::string Get_Currencies();
+    string Get_Currencies();
 
     /*
     Name:
@@ -192,7 +194,7 @@ public:
     Summary:
         List the currency for specified id.
     */
-    std::string Get_Currency(std::string cid);
+    string Get_Currency(string cid);
 
     //Time
     /*
@@ -201,7 +203,7 @@ public:
     Summary:
         Get the API server time.
     */
-    std::string Get_Time();
+    string Get_Time();
 
     //Fills
     /*
@@ -210,7 +212,7 @@ public:
     Summary:
         Get a list of recent fills of the API key's profile.
     */
-    std::string List_Fills(std::string order_id = "", std::string product_id = "");
+    string List_Fills(string order_id = "", string product_id = "");
 
     //Limits
     /*
@@ -219,7 +221,7 @@ public:
     Summary:
         This request will return information on your payment method transfer limits, as well as buy/sell limits per currency.
     */
-   std::string Get_Current_Exchange_Limits(); 
+   string Get_Current_Exchange_Limits(); 
 
     //Payment Methods
     /*
@@ -228,7 +230,7 @@ public:
     Summary:
         Get a list of your payment methods.
     */
-   std::string List_Payment_Methods(); 
+   string List_Payment_Methods(); 
 
    //Coinbase Accounts
     /*
@@ -237,7 +239,7 @@ public:
     Summary:
         Get a list of your coinbase accounts.
     */
-   std::string List_Coinbase_Accounts(); 
+   string List_Coinbase_Accounts(); 
 
     //Deposits
     /*
@@ -246,7 +248,7 @@ public:
     Summary:
         Get a list of deposits from the profile of the API key, in descending order by created time
     */
-   std::string List_Deposits(std::string profile_id = "", std::string before = "", std::string after = "", std::string limit = ""); 
+   string List_Deposits(string profile_id = "", string before = "", string after = "", string limit = ""); 
 
     /*
     Name:
@@ -254,7 +256,7 @@ public:
     Summary:
         Get information on a single deposit.
     */
-    std::string Single_Deposit(std::string transfer_id);
+    string Single_Deposit(string transfer_id);
 
     /*
     Name:
@@ -262,7 +264,7 @@ public:
     Summary:
         Deposit funds from a payment method. See the Payment Methods section for retrieving your payment methods.
     */
-    std::string Payment_Method_Deposit(std::string amount, std::string currency, std::string payment_method_id);
+    string Payment_Method_Deposit(string amount, string currency, string payment_method_id);
 
     /*
     Name:
@@ -270,7 +272,7 @@ public:
     Summary:
          You can move funds between your Coinbase accounts and your Coinbase Pro trading accounts within your daily limits.
     */
-    std::string Coinbase_Deposit(std::string amount, std::string currency, std::string coinbase_account_id);
+    string Coinbase_Deposit(string amount, string currency, string coinbase_account_id);
 
     /*
     Name:
@@ -278,7 +280,7 @@ public:
     Summary:
         You can generate an address for crypto deposits.
     */
-    std::string Generate_Crypto_Deposit_Address(std::string coinbase_account_id);
+    string Generate_Crypto_Deposit_Address(string coinbase_account_id);
 
 
     //Withdraw
@@ -288,7 +290,7 @@ public:
     Summary:
         Get a list of withdrawals from the profile of the API key, in descending order by created time. 
     */
-    std::string List_Withdrawals(std::string profile_id = "", std::string before = "", std::string after = "", std::string limit = "");
+    string List_Withdrawals(string profile_id = "", string before = "", string after = "", string limit = "");
 
     /*
     Name:
@@ -297,7 +299,7 @@ public:
         Get information on a single withdrawal.
         It may contain the cancel code, so you must process the cancel code!
     */
-    std::string Single_Withdrawal(std::string transfer_id);
+    string Single_Withdrawal(string transfer_id);
 
     /*
     Name:
@@ -305,7 +307,7 @@ public:
     Summary:
         Withdraw funds from a payment method. See the Payment Methods section for retrieving your payment methods.
     */
-    std::string Payment_Method_Withdraw(std::string amount, std::string currency, std::string payment_method_id);
+    string Payment_Method_Withdraw(string amount, string currency, string payment_method_id);
 
     /*
     Name:
@@ -313,7 +315,7 @@ public:
     Summary:
          You can move funds between your Coinbase accounts and your Coinbase Pro trading accounts within your daily limits.
     */
-    std::string Coinbase_Withdraw(std::string amount, std::string currency, std::string coinbase_account_id);
+    string Coinbase_Withdraw(string amount, string currency, string coinbase_account_id);
 
     /*
     Name:
@@ -321,7 +323,7 @@ public:
     Summary:
         Withdraws funds to a crypto address.
     */
-    std::string Crypto_Withdraw(std::string amount, std::string currency, std::string crypto_address, std::string destination_tag = "", std::string no_destination_tag = "", std::string add_network_fee_to_total = "");
+    string Crypto_Withdraw(string amount, string currency, string crypto_address, string destination_tag = "", string no_destination_tag = "", string add_network_fee_to_total = "");
 
     /*
     Name:
@@ -329,7 +331,7 @@ public:
     Summary:
         Gets the network fee estimate when sending to the given address.
     */
-    std::string Fee_Estimate(std::string currency, std::string crypto_address);
+    string Fee_Estimate(string currency, string crypto_address);
 
     //Stablecoin Conversions
     /*
@@ -338,7 +340,7 @@ public:
     Summary:
         A successful conversion will be assigned a conversion id. The corresponding ledger entries for a conversion will reference this conversion id. 
     */
-    std::string Create_Conversion(std::string from, std::string to, std::string amount);
+    string Create_Conversion(string from, string to, string amount);
 
     //Fees
     /*
@@ -347,7 +349,7 @@ public:
     Summary:
         This request will return your current maker & taker fee rates, as well as your 30-day trailing volume.
     */
-    std::string Get_Current_Fees();
+    string Get_Current_Fees();
 
     //Reports
     /*
@@ -356,7 +358,7 @@ public:
     Summary:
         Reports provide batches of historic information about your profile in various human and machine readable forms.
     */
-    std::string Create_new_report(std::string type, std::string start_date, std::string end_date, std::string product_id = "", std::string account_id = "", std::string format = "", std::string email = "");
+    string Create_new_report(string type, string start_date, string end_date, string product_id = "", string account_id = "", string format = "", string email = "");
 
     /*
     Name:
@@ -364,7 +366,7 @@ public:
     Summary:
         Once a report request has been accepted for processing, the status is available by polling the report resource endpoint.
     */
-    std::string Get_report_status(std::string report_id);
+    string Get_report_status(string report_id);
 
     //Profiles
     /*
@@ -373,7 +375,7 @@ public:
     Summary:
         List your profiles.
     */
-    std::string List_Profiles(std::string active = "true");
+    string List_Profiles(string active = "true");
 
     /*
     Name:
@@ -381,7 +383,7 @@ public:
     Summary:
         Get a single profile by profile id.
     */
-    std::string Get_Profile(std::string profile_id);
+    string Get_Profile(string profile_id);
 
     /*
     Name:
@@ -389,7 +391,7 @@ public:
     Summary:
         Transfer funds from API key's profile to another user owned profile.
     */
-    std::string Create_profile_transfer(std::string from, std::string to, std::string currency, std::string amount  );
+    string Create_profile_transfer(string from, string to, string currency, string amount  );
     
     //User Account
     /*
@@ -398,7 +400,7 @@ public:
     Summary:
         This request will return your 30-day trailing volume for all products of the API key's profile. This is a cached value that's calculated every day at midnight UTC.
     */
-    std::string Trailing_Volume();
+    string Trailing_Volume();
 
 
 

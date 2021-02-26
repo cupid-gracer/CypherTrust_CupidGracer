@@ -7,6 +7,8 @@
 #include "cryptopp/base64.h"
 #include "cryptopp/filters.h"
 
+
+using namespace std;
 using CryptoPP::Exception;
 using CryptoPP::HMAC;
 using CryptoPP::SHA256;
@@ -16,10 +18,10 @@ using CryptoPP::StringSink;
 using CryptoPP::StringSource;
 using CryptoPP::HashFilter;
 
-std::string Auth::Sign(std::string time_stamp, std::string method, std::string path, std::string body)
+string Auth::Sign(string time_stamp, string method, string path, string body)
 {
-  std::string mac, encoded, key;
-  std::string plain = time_stamp + method + path + body;
+  string mac, encoded, key;
+  string plain = time_stamp + method + path + body;
   StringSource(Secret, true,
 		  new Base64Decoder(
 			  new StringSink(key)));
@@ -41,11 +43,11 @@ std::string Auth::Sign(std::string time_stamp, std::string method, std::string p
   return encoded;
 }
 
-std::string Auth::GetTimestamp()
+string Auth::GetTimestamp()
 {
   time_t t = time(0);
   return std::to_string(t);
 }
 
-Auth::Auth(std::string key, std::string secret, std::string passphrase)
+Auth::Auth(string key, string secret, string passphrase)
 { Key = key; Secret = secret; Passphrase = passphrase; }
