@@ -303,7 +303,7 @@ void redisMan()
         cout << "tcp://" + redisHost + ":" + to_string(redisPort) << endl; 
         string url = "tcp://" + redisHost + ":" + to_string(redisPort);
         auto redis = Redis("127.0.0.1:6379");
-        // cout << redis.ping("");
+        cout << redis.ping("a");
         // auto redis = sw::redis::Redis(("tcp://" + redisHost + ":" + to_string(redisPort)).c_str());
         // redis.set("key", "value");
         // auto val = redis.get("key");    // val is of type OptionalString. See 'API Reference' section for details.
