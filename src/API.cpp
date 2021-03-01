@@ -26,7 +26,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 static bool DetectHttpError(string res)
 {
   Document d;
-  cout<< res << endl;
+  // cout<< res << endl;
   d.Parse(res.c_str());
   if(d.HasMember("error")){
     string str_error = d["error"].GetString();

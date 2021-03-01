@@ -14,7 +14,7 @@ public:
     BNUS();
     ~BNUS();
     /* Declare Variables */
-    std::string uri;
+    string uri;
     API api;
 
 

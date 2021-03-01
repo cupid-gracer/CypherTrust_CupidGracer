@@ -1,5 +1,4 @@
 /* CypherTrust */
-
 #include "API.h"
 #include <iostream>
 #include <fstream>
@@ -9,7 +8,6 @@
 #include <thread>
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
-#include <sw/redis++/redis++.h>
 #include <syslog.h>
 #include <csignal>
 #include <stdio.h>
@@ -22,48 +20,26 @@
 #include <sys/stat.h>
 
 /* Exchange */
+#include "App.h"
 #include "exchange/STEX/STEX.h"
 #include "exchange/CBPR/CBPR.h"
 #include "exchange/HITB/HITB.h"
 
-/* rapidjson */
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
 
 
 #define DAEMON_NAME "CypherTrust"
 
-using namespace rapidjson;
-using namespace sw::redis;
+
 using namespace std;
 
 /* Functions Declare */
-void redisMan();
-void setGlobalValue(string res);
 void signal_handler(int sig);
 void daemonize(const char *rundir, const char *pidfile);
 void daemonShutdown();
 
-/* Variable Declare */
-// bootstrap variables
-string  redisManagementChannel,
-        redisHeartbeatChannel,
-        redisOrderBookChannel,
-        redisHost,
-        walletName,
-        exchangeSecret,
-        exchangePassword,
-        exchangeKey,
-        exchangeApiUrl,
-        exchangeWsUrl,
-        exchangeRedisOrderChannel,
-        portfolioName;
-int redisPort;
-bool walletEnabled;
-vector<string> coin_included;
 
 //Daemon variable
+string con_setting_str = "";
 bool exitdaemon = false;
 int pidFilehandle;
 
@@ -213,7 +189,6 @@ void daemonShutdown()
 
 
 /* Bootstrap Processing */
-
 bool bootstrap(int argc, char *argv[])
 {
     string user, password, type, key = "9xds0be661dc5a42e08cdca3b0bbd4";
@@ -257,73 +232,22 @@ bool bootstrap(int argc, char *argv[])
         cout << "Authentication is failed!" << endl;
         return false;
     }
+    con_setting_str = res;
     
-    /* set Global values*/
-    setGlobalValue(res);
-    /* set redis*/
-    redisMan();
 
     return true;
-}
-
-void setGlobalValue(string res)
-{
-    Document d;
-    d.Parse(res.c_str());
-
-    redisManagementChannel = d["bootstrap"]["redisManagementChannel"].GetString();
-    redisHeartbeatChannel = d["bootstrap"]["redisHeartbeatChannel"].GetString();
-    redisOrderBookChannel = d["bootstrap"]["redisOrderBookChannel"].GetString();
-    redisHost = d["bootstrap"]["redisHost"].GetString();
-    redisPort = d["bootstrap"]["redisPort"].GetInt();
-
-    const Value &c = d["connector"];
-
-    walletName = c[0]["wallet"]["walletName"].GetString();
-    walletEnabled = c[0]["wallet"]["walletEnabled"].GetBool();
-    exchangeSecret = c[0]["wallet"]["exchangeSecret"].GetString();
-    exchangePassword = c[0]["wallet"]["exchangePassword"].GetString();
-    exchangeKey = c[0]["wallet"]["exchangeKey"].GetString();
-    exchangeApiUrl = c[0]["wallet"]["exchangeApiUrl"].GetString();
-    exchangeWsUrl = c[0]["wallet"]["exchangeWsUrl"].GetString();
-    exchangeRedisOrderChannel = c[0]["wallet"]["exchangeRedisOrderChannel"].GetString();
-    portfolioName = c[0]["wallet"]["portfolioName"].GetString();
-
-    const Value &e = c[0]["market"]["included"];
-    for(int i = 0; i < e.Size(); i++)
-    {
-        coin_included.push_back(e[i].GetString());
-    }
-}
-
-
-void redisMan()
-{
-    try{
-        cout << "tcp://" + redisHost + ":" + to_string(redisPort) << endl; 
-        string url = "tcp://" + redisHost + ":" + to_string(redisPort);
-        auto redis = Redis("127.0.0.1:6379");
-        cout << redis.ping("a");
-        // auto redis = sw::redis::Redis(("tcp://" + redisHost + ":" + to_string(redisPort)).c_str());
-        // redis.set("key", "value");
-        // auto val = redis.get("key");    // val is of type OptionalString. See 'API Reference' section for details.
-        // if (val) {
-        //     // Dereference val to get the returned value of std::string type.
-        //     std::cout << *val << std::endl;
-        // }   // else key doesn't exist.
-    }catch(const Error &e){
-        syslog(LOG_PERROR, "Redis error occur!");
-    }
 }
 
 
 /* main */
 int main(int argc, char *argv[])
 {
+
     /* Bootstraping... */
     if(!bootstrap(argc, argv)){
         return 0;
     }
+    App app(con_setting_str);
 
     /* Logging */
     setlogmask(LOG_UPTO(LOG_INFO));
@@ -335,16 +259,16 @@ int main(int argc, char *argv[])
     // const char* daemonpid = "/var/run/srv_test.pid";
     const char* daemonpid = "/home/cupid/srv_test.pid";
     const char* daemonpath = "/";
-    daemonize(daemonpath, daemonpid);
+    // daemonize(daemonpath, daemonpid);
 
-    syslog(LOG_INFO, "CrypherTrust Daemon running");
+    // syslog(LOG_INFO, "CrypherTrust Daemon running");
 
-    while (!exitdaemon)
-    {
-        sleep(10);
-    }
+    // while (!exitdaemon)
+    // {
+    //     sleep(10);
+    // }
 
-    daemonShutdown();
+    // daemonShutdown();
 
     return 0;
 }

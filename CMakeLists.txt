@@ -60,3 +60,4 @@ target_include_directories(cp PUBLIC ${REDIS_PLUS_PLUS_INC_DIR})
 
 find_library(REDIS_PLUS_PLUS_LIB_DIR redis++)
 target_link_libraries(cp ${REDIS_PLUS_PLUS_LIB_DIR})
+

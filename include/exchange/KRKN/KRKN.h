@@ -14,7 +14,7 @@ public:
     KRKN();
     ~KRKN();
     /* Declare Variables */
-    std::string uri;
+    string uri;
     API api;
 
 

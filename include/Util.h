@@ -22,6 +22,13 @@ public:
     std::string GetTimestamp();
     int GetNumberCombination(int n, int r);
     void split(std::string &str, char delim, std::vector<std::string> &out);
+
+    int Base64encode_len(int len);
+    int Base64encode(char * coded_dst, const char *plain_src,int len_plain_src);
+
+    int Base64decode_len(const char * coded_src);
+    int Base64decode(char * plain_dst, const char *coded_src);
+
 };
 
 #endif // UTIL_H

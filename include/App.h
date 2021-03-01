@@ -12,13 +12,35 @@ class App
 {
 
 public:
-    App();
+    App(string con_setting_str);
     ~App();
 
     API api;
     string uri;
+    /* Variable Declare */
+    // bootstrap variables
+    string  redisManagementChannel,
+            redisHeartbeatChannel,
+            redisOrderBookChannel,
+            redisHost,
+            walletName,
+            exchangeSecret,
+            exchangePassword,
+            exchangeKey,
+            exchangeApiUrl,
+            exchangeWsUrl,
+            exchangeRedisOrderChannel,
+            portfolioName,
+            address_id,
+            expiration;
+    int redisPort;
+    bool walletEnabled;
+    vector<string> coin_included;
 
     void auth(string user, string password, string type);
+
+    void redisMan();
+    void setGlobalValue(string res);
 
 
 };
