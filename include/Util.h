@@ -29,6 +29,10 @@ public:
     int Base64decode_len(const char * coded_src);
     int Base64decode(char * plain_dst, const char *coded_src);
 
+    long GetMicroseconds(string timestamp);
+
+    string GetSHA1Hash(string str);
+
 };
 
 #endif // UTIL_H

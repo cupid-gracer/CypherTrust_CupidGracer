@@ -19,9 +19,13 @@ public:
     ~API();
     string url;
     string token;
-    string auth_url;
 
-    string auth(string user, string password, string key);
+    string user;
+    string key;
+    string password;
+
+    string auth();
+    bool del_address(string address_id);
     
 
 

@@ -1,6 +1,6 @@
 // Api.h
-#ifndef API_H
-#define API_H
+#ifndef CBPRAPI_H
+#define CBPRAPI_H
 
 #include "exchange/CBPR/Auth.h"
 #include <string>
@@ -8,14 +8,14 @@
 
 using namespace std;
 
-class API
+class CBPRAPI
 {
 private:
     string Call(string method, bool authed, string path, string body);
 
 public:
-    API();
-    ~API();
+    CBPRAPI();
+    ~CBPRAPI();
     Auth auth;
     string uri;
     string product_id;
@@ -402,20 +402,8 @@ public:
     */
     string Trailing_Volume();
 
-
-
-
-
-
-
-
-
-
-
-
-
 };
 
 
 
-#endif // API_H
+#endif // CBPRAPI_H

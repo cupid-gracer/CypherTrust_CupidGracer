@@ -12,7 +12,7 @@ class App
 {
 
 public:
-    App(string con_setting_str);
+    App(string con_setting_str, string type);
     ~App();
 
     API api;
@@ -23,6 +23,7 @@ public:
             redisHeartbeatChannel,
             redisOrderBookChannel,
             redisHost,
+            logHost,
             walletName,
             exchangeSecret,
             exchangePassword,
@@ -31,17 +32,22 @@ public:
             exchangeWsUrl,
             exchangeRedisOrderChannel,
             portfolioName,
+            connectorID,
+            expiration,
+            redisURL,
             address_id,
-            expiration;
-    int redisPort;
+            scope;
+    int redisPort, logPort;
     bool walletEnabled;
     vector<string> coin_included;
+    string type;
 
     void auth(string user, string password, string type);
 
     void redisMan();
     void setGlobalValue(string res);
 
+    void run();
 
 };
 

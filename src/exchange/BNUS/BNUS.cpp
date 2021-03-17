@@ -14,7 +14,7 @@
 
 /* BNUS */
 #include "exchange/BNUS/BNUS.h"
-#include "exchange/BNUS/API.h"
+// #include "exchange/BNUS/API.h"
 #include "Util.h"
 
 /* rapidjson */

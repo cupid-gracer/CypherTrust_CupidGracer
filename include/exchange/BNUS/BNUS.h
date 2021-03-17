@@ -2,7 +2,7 @@
 #ifndef BNUS_H
 #define BNUS_H
 
-#include "exchange/BNUS/API.h"
+// #include "exchange/BNUS/API.h"
 #include <string>
 #include <vector>
 
@@ -15,7 +15,7 @@ public:
     ~BNUS();
     /* Declare Variables */
     string uri;
-    API api;
+    // API api;
 
 
 

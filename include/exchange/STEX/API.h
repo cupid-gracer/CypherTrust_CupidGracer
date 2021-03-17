@@ -1,6 +1,6 @@
 // Api.h
-#ifndef API_H
-#define API_H
+#ifndef STEXAPI_H
+#define STEXAPI_H
 
 #include <string>
 #include <vector>
@@ -8,14 +8,14 @@
 
 using namespace std;
 
-class API
+class STEXAPI
 {
 private:
     string Call(string method, bool authed, string path, string body);
 
 public:
-    API();
-    ~API();
+    STEXAPI();
+    ~STEXAPI();
     Util util;
     string uri;
     string access_token;
@@ -438,4 +438,4 @@ public:
 
 
 
-#endif // API_H
+#endif // STEXAPI_H

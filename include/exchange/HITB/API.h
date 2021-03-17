@@ -1,6 +1,6 @@
 // Api.h
-#ifndef API_H
-#define API_H
+#ifndef HITB_API
+#define HITB_API
 
 #include <string>
 #include <vector>
@@ -8,14 +8,14 @@
 
 using namespace std;
 
-class API
+class HITBAPI
 {
 private:
     string Call(string method, bool authed, string path, string body);
 
 public:
-    API();
-    ~API();
+    HITBAPI();
+    ~HITBAPI();
     Util util;
     string uri;
     string token;
@@ -401,4 +401,4 @@ public:
 
 
 
-#endif // API_H
+#endif // HITB_API

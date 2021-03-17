@@ -1,16 +1,17 @@
 // Websock.h
-#ifndef WEBSOCK_H
-#define WEBSOCK_H
+#ifndef CBPRWEBSOCK_H
+#define CBPRWEBSOCK_H
 
 #include <openssl/conf.h>
 #include <cpprest/ws_client.h>
 #include <vector>
 #include <string>
 #include <shared_mutex>
+#include "Util.h"
 
 using namespace std;
 
-class Websock
+class CBPRWebsock
 {
 private:
   web::websockets::client::websocket_callback_client client;
@@ -21,9 +22,13 @@ private:
   std::vector<double> sell_prices;
   std::shared_mutex buy_mut, sell_mut;
   std::vector<string> Channels;
-  string Product_id;
+  std::vector<string> Product_ids;
   string Uri;
+  string redisURL;
+  string ConnectorID;
   bool is_connected;
+
+  Util util;
 
 public:
   double Best_Buy_Price();
@@ -32,7 +37,7 @@ public:
 
   void Connect();
   void Disconnect();
-  Websock(std::vector<string> channels, string product_id, string uri);
-  ~Websock();
+  CBPRWebsock(vector<string> channels, vector<string> product_ids, string uri, string redisurl, string connectorID);
+  ~CBPRWebsock();
 };
-#endif // WEBSOCK_H
+#endif // CBPRWEBSOCK_H

@@ -19,55 +19,53 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-/* Exchange */
+
 #include "App.h"
-#include "exchange/STEX/STEX.h"
-#include "exchange/CBPR/CBPR.h"
-#include "exchange/HITB/HITB.h"
-
-
+#include "Util.h"
 
 #define DAEMON_NAME "CypherTrust"
 
-
 using namespace std;
+using namespace std::chrono;
 
 /* Functions Declare */
 void signal_handler(int sig);
 void daemonize(const char *rundir, const char *pidfile);
 void daemonShutdown();
 
-
 //Daemon variable
 string con_setting_str = "";
 bool exitdaemon = false;
 int pidFilehandle;
+string exchange_type;
+string address_id;
+string scope;
 
 //Daemon Processing
 void signal_handler(int sig)
 {
     openlog(DAEMON_NAME, LOG_CONS | LOG_PERROR, LOG_USER);
-    switch(sig)
+    switch (sig)
     {
-        case SIGHUP:
-            syslog(LOG_INFO, "Terminal was closed");
-            break;
-        case SIGTERM:
-            syslog(LOG_INFO, "Graceful termination");
-            exitdaemon = true;
-            break;
-        case SIGKILL:
-            syslog(LOG_INFO, "Forced termination with core dump");
-            break;
-        case SIGQUIT:
-            syslog(LOG_INFO, "Forced termination");
-            break;
-        case SIGCONT:
-            syslog(LOG_INFO, "Execution continued after pause");
-            break;
-        case SIGSTOP:
-            syslog(LOG_INFO, "Execution paused");
-            break;
+    case SIGHUP:
+        syslog(LOG_INFO, "Terminal was closed");
+        break;
+    case SIGTERM:
+        syslog(LOG_INFO, "Graceful termination");
+        exitdaemon = true;
+        break;
+    case SIGKILL:
+        syslog(LOG_INFO, "Forced termination with core dump");
+        break;
+    case SIGQUIT:
+        syslog(LOG_INFO, "Forced termination");
+        break;
+    case SIGCONT:
+        syslog(LOG_INFO, "Execution continued after pause");
+        break;
+    case SIGSTOP:
+        syslog(LOG_INFO, "Execution paused");
+        break;
     }
 }
 
@@ -87,11 +85,11 @@ void daemonize(const char *rundir, const char *pidfile)
 
     /* Set signal mask - signals we want to block */
     sigemptyset(&newSigSet);
-    sigaddset(&newSigSet, SIGCHLD);  /* ignore child - i.e. we don't need to wait for it */
-    sigaddset(&newSigSet, SIGTSTP);  /* ignore Tty stop signals */
-    sigaddset(&newSigSet, SIGTTOU);  /* ignore Tty background writes */
-    sigaddset(&newSigSet, SIGTTIN);  /* ignore Tty background reads */
-    sigprocmask(SIG_BLOCK, &newSigSet, NULL);   /* Block the above specified signals */
+    sigaddset(&newSigSet, SIGCHLD);           /* ignore child - i.e. we don't need to wait for it */
+    sigaddset(&newSigSet, SIGTSTP);           /* ignore Tty stop signals */
+    sigaddset(&newSigSet, SIGTTOU);           /* ignore Tty background writes */
+    sigaddset(&newSigSet, SIGTTIN);           /* ignore Tty background reads */
+    sigprocmask(SIG_BLOCK, &newSigSet, NULL); /* Block the above specified signals */
 
     /* Set up a signal handler */
     newSigAction.sa_handler = signal_handler;
@@ -99,13 +97,12 @@ void daemonize(const char *rundir, const char *pidfile)
     newSigAction.sa_flags = 0;
 
     /* Signals to handle */
-    sigaction(SIGHUP,  &newSigAction, NULL);     /* Stop and redo the bootstrapping process */
-    sigaction(SIGKILL, &newSigAction, NULL);     /* Immediate termination of the connector */
-    sigaction(SIGQUIT, &newSigAction, NULL);     /* Forced termination of the connector */
-    sigaction(SIGTERM, &newSigAction, NULL);     /* Graceful termination of the connector */
-    sigaction(SIGCONT, &newSigAction, NULL);     /* Continue the order book streaming */
-    sigaction(SIGSTOP, &newSigAction, NULL);     /* Pause the order book streaming  */
-
+    sigaction(SIGHUP, &newSigAction, NULL);  /* Stop and redo the bootstrapping process */
+    sigaction(SIGKILL, &newSigAction, NULL); /* Immediate termination of the connector */
+    sigaction(SIGQUIT, &newSigAction, NULL); /* Forced termination of the connector */
+    sigaction(SIGTERM, &newSigAction, NULL); /* Graceful termination of the connector */
+    sigaction(SIGCONT, &newSigAction, NULL); /* Continue the order book streaming */
+    sigaction(SIGSTOP, &newSigAction, NULL); /* Pause the order book streaming  */
 
     /* Fork*/
     pid = fork();
@@ -155,9 +152,9 @@ void daemonize(const char *rundir, const char *pidfile)
     chdir(rundir); /* change running directory */
 
     /* Ensure only one copy */
-    pidFilehandle = open(pidfile, O_RDWR|O_CREAT, 0600);
+    pidFilehandle = open(pidfile, O_RDWR | O_CREAT, 0600);
 
-    if (pidFilehandle == -1 )
+    if (pidFilehandle == -1)
     {
         /* Couldn't open lock file */
         syslog(LOG_INFO, "Could not open PID lock file %s, exiting", pidfile);
@@ -165,16 +162,15 @@ void daemonize(const char *rundir, const char *pidfile)
     }
 
     /* Try to lock file */
-    if (lockf(pidFilehandle,F_TLOCK,0) == -1)
+    if (lockf(pidFilehandle, F_TLOCK, 0) == -1)
     {
         /* Couldn't get lock on lock file */
         syslog(LOG_INFO, "Could not lock PID lock file %s, exiting", pidfile);
         exit(EXIT_FAILURE);
     }
 
-
     /* Get and format PID */
-    sprintf(str,"%d\n",getpid());
+    sprintf(str, "%d\n", getpid());
 
     /* write pid to lockfile */
     write(pidFilehandle, str, strlen(str));
@@ -187,67 +183,78 @@ void daemonShutdown()
     close(pidFilehandle);
 }
 
-
 /* Bootstrap Processing */
 bool bootstrap(int argc, char *argv[])
 {
-    string user, password, type, key = "9xds0be661dc5a42e08cdca3b0bbd4";
-    if(argc < 7) {
-        cout << "Number of parameters is not correct!" << endl;
-        return false;
-    }
+    string user, password, type;
+    // if(argc < 7) {
+    //     cout << "Number of parameters is not correct!" << endl;
+    //     return false;
+    // }
 
-    for(int i = 0; i < argc; i++)
-    {
-        string s = argv[i];
-        if(s == "-u")
-        {
-            user = argv[i+1];
-        }
-        if(s == "-p")
-        {
-            password = argv[i+1];
-        }
-        if(s == "-t")
-        {
-            type = argv[i+1];
-        }
-    }
-    if(user == "" || password == "" || type == "")
-    {
-        cout << "The parameters you inputed are wrong!" << endl;
-        return false;
-    }
+    // for(int i = 0; i < argc; i++)
+    // {
+    //     string s = argv[i];
+    //     if(s == "-u")
+    //     {
+    //         user = argv[i+1];
+    //     }
+    //     if(s == "-p")
+    //     {
+    //         password = argv[i+1];
+    //     }
+    //     if(s == "-t")
+    //     {
+    //         type = argv[i+1];
+    //     }
+    // }
+    // if(user == "" || password == "" || type == "")
+    // {
+    //     cout << "The parameters you inputed are wrong!" << endl;
+    //     return false;
+    // }
 
+    type = "CBPR";
 
     API auth_api;
-    auth_api.auth_url = "http://auth.dev.cyphertrust.eu/v1/connector/auth";
+    auth_api.url = "https://hub.cyphertrust.eu/v1/connector";
+    auth_api.user = "fmaertens";
+    auth_api.password = "x2NGo87ympHowidyPMhn";
+    auth_api.key = type;
+    exchange_type = type;
 
     //test
-    user =  "fmaertens";
-    password = "x2NGo87ympHowidyPMhn";
-
-    string res = auth_api.auth(user, password, key);
-    if(res == "error"){
+    string res = auth_api.auth();
+    if (res == "error")
+    {
         cout << "Authentication is failed!" << endl;
         return false;
     }
     con_setting_str = res;
-    
+
+    size_t pos = res.find("connector");
+    string st = con_setting_str.substr(pos, 40);
+    Util util = Util();
+    vector<string> st_array;
+    util.split(st, '"', st_array);
+    address_id = st_array[2];
+    string str_s = auth_api.user + "" + auth_api.password + "" +  exchange_type ;
+    scope = util.GetSHA1Hash(str_s);
 
     return true;
 }
-
 
 /* main */
 int main(int argc, char *argv[])
 {
 
     /* Bootstraping... */
-    if(!bootstrap(argc, argv)){
+    if (!bootstrap(argc, argv))
+    {
         return 0;
     }
-    App app(con_setting_str);
+    App app(con_setting_str, exchange_type);
+    app.run();
 
     /* Logging */
     setlogmask(LOG_UPTO(LOG_INFO));
@@ -257,8 +264,18 @@ int main(int argc, char *argv[])
 
     /* Deamonize */
     // const char* daemonpid = "/var/run/srv_test.pid";
-    const char* daemonpid = "/home/cupid/srv_test.pid";
-    const char* daemonpath = "/";
+    const char *daemonpid = "/home/cupid/srv_test.pid";
+    const char *daemonpath = "/";
+
+    API auth_api;
+    auth_api.url = "http://auth.dev.cyphertrust.eu/v1/connector";
+    auth_api.user = "fmaertens";
+    auth_api.password = "x2NGo87ympHowidyPMhn";
+    auth_api.key = "CBPR";
+
+    //test
+    auth_api.del_address(address_id);
+
     // daemonize(daemonpath, daemonpid);
 
     // syslog(LOG_INFO, "CrypherTrust Daemon running");
@@ -272,6 +289,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-
-

@@ -23,12 +23,13 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
   return size * nmemb;
 }
 
-static bool DetectHttpError(string res)
+static int DetectHttpError(string res)
 {
   Document d;
   // cout<< res << endl;
   d.Parse(res.c_str());
-  if(d.HasMember("error")){
+  if(d.HasMember("error"))
+  {
     string str_error = d["error"].GetString();
     cout<< res << endl;
 
@@ -50,9 +51,9 @@ static bool DetectHttpError(string res)
       syslog(LOG_CRIT,"Authentication is critical  condition. The status code is %d, ",error_code);
     }
     closelog();
-    return false;
+    return error_code;
   }else
-    return true;
+    return 200;
 }
 
 API::API()
@@ -80,11 +81,12 @@ string API::Call(string method, bool authed, string path, string body)
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl/1.0");
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    chunk = curl_slist_append(chunk, "accept: application/json");
-    if (authed)
-    {
-      chunk = curl_slist_append(chunk, ("authorization: Basic " + token).c_str());
-    }
+    chunk = curl_slist_append(chunk, "User-Agent: CypherTrust/v1.0-Trixie");
+    chunk = curl_slist_append(chunk, ("X-Exchange-Key: " + key).c_str());
+    chunk = curl_slist_append(chunk, ("X-Auth-Username: " + user).c_str());
+    chunk = curl_slist_append(chunk, ("X-Auth-Password: " + password).c_str());
+    // chunk = curl_slist_append(chunk, "accept: application/json");
+    
     res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
     if (method == "POST")
     {
@@ -95,10 +97,7 @@ string API::Call(string method, bool authed, string path, string body)
     }
     if (method == "DELETE")
     {
-      chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
       curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
     }
     if (method == "PUT")
     {
@@ -129,42 +128,38 @@ string API::Call(string method, bool authed, string path, string body)
 }
 
 
-string API::auth(string user, string password, string key)
+string API::auth()
 {
-  CURL *curl;
-  CURLcode res;
-  string readBuffer;
-  curl = curl_easy_init();
-
-  if (curl)
+  string res = Call("GET", false, "/auth", "");
+  int respose_code = DetectHttpError(res);
+  if(respose_code == 200)
   {
-    struct curl_slist *chunk = NULL;
-    curl_easy_setopt(curl, CURLOPT_URL, auth_url.c_str());
-    // curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl/1.0");
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    chunk = curl_slist_append(chunk, "User-Agent: CypherTrust/v1.0-Trixie");
-    chunk = curl_slist_append(chunk, ("X-Exchange-Key:  " + key).c_str());
-    chunk = curl_slist_append(chunk, ("X-Auth-Username: " + user).c_str());
-    chunk = curl_slist_append(chunk, ("X-Auth-Password: " + password).c_str());
-
-    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-    
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-    res = curl_easy_perform(curl);
-    /* Check for errors */
-    if (res != CURLE_OK)
-      std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-    /* always cleanup */
-    curl_easy_cleanup(curl);
-    /* free the custom headers */
-    curl_slist_free_all(chunk);
-  }
-  // cout << readBuffer << endl;
-  if(DetectHttpError(readBuffer))
-  {
-    return readBuffer;
+    return res;
+  }else {
+      if(respose_code == 40305)
+      {
+        Document d;
+        d.Parse(res.c_str());
+        string address_id = d["debug"].GetString();
+        if(del_address(address_id))
+        {
+          return res = Call("GET", false, "/auth", "");
+        }
+      }
   }
   return "error";
+}
+
+
+bool API::del_address(string address_id)
+{
+  string res = Call("DELETE", false, "/address/" + address_id, "");
+  Document d;
+  d.Parse(res.c_str());
+  cout << res << endl;
+  if(d.HasMember("address"))
+  {
+    return true;
+  }
+  return false;
 }

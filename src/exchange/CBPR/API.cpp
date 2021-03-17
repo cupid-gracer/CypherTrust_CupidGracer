@@ -8,7 +8,7 @@
 using namespace rapidjson;
 using namespace std;
 
-/* Used by API::Call to put websource into a string type */
+/* Used by CBPRAPI::Call to put websource into a string type */
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
   ((string *)userp)->append((char *)contents, size * nmemb);
@@ -16,7 +16,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 }
 
 /* Uses libcurl to get Data From API */
-string API::Call(string method, bool authed, string path, string body)
+string CBPRAPI::Call(string method, bool authed, string path, string body)
 {
   CURL *curl;
   CURLcode res;
@@ -63,7 +63,7 @@ string API::Call(string method, bool authed, string path, string body)
   return readBuffer;
 }
 
-string API::Get_Buy_Price()
+string CBPRAPI::Get_Buy_Price()
 {
   string ret = "";
   string st = Call("GET", false, "/products/" + product_id + "/book", "");
@@ -86,7 +86,7 @@ string API::Get_Buy_Price()
   return ret;
 }
 
-double API::Get_Balance(string currency)
+double CBPRAPI::Get_Balance(string currency)
 {
   double ret = 0;
   string txt = Call("GET", true, "/accounts", "");
@@ -109,7 +109,7 @@ double API::Get_Balance(string currency)
   return ret;
 }
 
-string API::Place_Limit_Order(string side, string price, string size)
+string CBPRAPI::Place_Limit_Order(string side, string price, string size)
 {
   string order_id = "";
   Document d;
@@ -166,7 +166,7 @@ string API::Place_Limit_Order(string side, string price, string size)
 }
 
 //List Accounts
-string API::Get_List_Accounts()
+string CBPRAPI::Get_List_Accounts()
 {
   string res = Call("GET", true, "/accounts/", "");
   std::cout << res;
@@ -174,7 +174,7 @@ string API::Get_List_Accounts()
 }
 
 //Get an Account
-string API::Get_Account(string account_id)
+string CBPRAPI::Get_Account(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id, "");
   std::cout << res;
@@ -182,7 +182,7 @@ string API::Get_Account(string account_id)
 }
 
 //Get Account History
-string API::Get_Account_History(string account_id)
+string CBPRAPI::Get_Account_History(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
   std::cout << res;
@@ -190,7 +190,7 @@ string API::Get_Account_History(string account_id)
 }
 
 //Get Holds
-string API::Get_Holds(string account_id)
+string CBPRAPI::Get_Holds(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
   std::cout << res;
@@ -198,7 +198,7 @@ string API::Get_Holds(string account_id)
 }
 
 // Place a New Order
-string API::Place_New_Order(string side, string price, string size, string client_oid, string type, string stp, string stop, string stop_price, string time_in_force, string cancel_after, bool post_only, string funds)
+string CBPRAPI::Place_New_Order(string side, string price, string size, string client_oid, string type, string stp, string stop, string stop_price, string time_in_force, string cancel_after, bool post_only, string funds)
 {
   string order_id = "";
   Document d;
@@ -294,7 +294,7 @@ string API::Place_New_Order(string side, string price, string size, string clien
 }
 
 // Cancel Order
-string API::Cancel_Order(string oid, bool isOid)
+string CBPRAPI::Cancel_Order(string oid, bool isOid)
 {
   string url = "";
   if (!isOid)
@@ -316,7 +316,7 @@ string API::Cancel_Order(string oid, bool isOid)
 }
 
 // Cancel All Orders
-string API::Cancel_All_Order()
+string CBPRAPI::Cancel_All_Order()
 {
   string res = Call("DELETE", true, "/orders", "");
   std::cout << res;
@@ -324,7 +324,7 @@ string API::Cancel_All_Order()
 }
 
 //List Orders
-string API::List_Orders(string product_id, bool isOpen, bool isPending, bool isActive)
+string CBPRAPI::List_Orders(string product_id, bool isOpen, bool isPending, bool isActive)
 {
   string url = "/orders?";
   if (product_id != "")
@@ -350,7 +350,7 @@ string API::List_Orders(string product_id, bool isOpen, bool isPending, bool isA
 }
 
 //Get an Order
-string API::Get_Order(string oid, bool isOid)
+string CBPRAPI::Get_Order(string oid, bool isOid)
 {
   string url = "";
   if (!isOid)
@@ -373,7 +373,7 @@ string API::Get_Order(string oid, bool isOid)
 
 //Products
 // Get Products
-string API::Get_Products()
+string CBPRAPI::Get_Products()
 {
   string url = "/products";
 
@@ -383,7 +383,7 @@ string API::Get_Products()
 }
 
 //Get Single Product
-string API::Get_Single_Product()
+string CBPRAPI::Get_Single_Product()
 {
   string url = "/products/" + product_id;
   string res = Call("GET", false, url, "");
@@ -392,7 +392,7 @@ string API::Get_Single_Product()
 }
 
 //Get Product Order Book
-string API::Get_Product_Order_Book()
+string CBPRAPI::Get_Product_Order_Book()
 {
   string url = "/products/" + product_id + "/book";
   string res = Call("GET", false, url, "");
@@ -401,7 +401,7 @@ string API::Get_Product_Order_Book()
 }
 
 //Get Product Ticker
-string API::Get_Product_Ticker()
+string CBPRAPI::Get_Product_Ticker()
 {
   string url = "/products/" + product_id + "/ticker";
   string res = Call("GET", false, url, "");
@@ -410,7 +410,7 @@ string API::Get_Product_Ticker()
 }
 
 //Get Trades
-string API::Get_Trades()
+string CBPRAPI::Get_Trades()
 {
   string url = "/products/" + product_id + "/trades";
   string res = Call("GET", false, url, "");
@@ -419,7 +419,7 @@ string API::Get_Trades()
 }
 
 //Get Historic Rates
-string API::Get_Historic_Rates()
+string CBPRAPI::Get_Historic_Rates()
 {
   string url = "/products/" + product_id + "/candles";
   string res = Call("GET", false, url, "");
@@ -428,7 +428,7 @@ string API::Get_Historic_Rates()
 }
 
 //Get 24hr Stats
-string API::Get_24hr_Stats()
+string CBPRAPI::Get_24hr_Stats()
 {
   string url = "/products/" + product_id + "/stats";
   string res = Call("GET", false, url, "");
@@ -437,7 +437,7 @@ string API::Get_24hr_Stats()
 }
 
 //Get Currencies
-string API::Get_Currencies()
+string CBPRAPI::Get_Currencies()
 {
   string url = "/currencies/";
   string res = Call("GET", false, url, "");
@@ -446,7 +446,7 @@ string API::Get_Currencies()
 }
 
 //Get Currency
-string API::Get_Currency(string cid)
+string CBPRAPI::Get_Currency(string cid)
 {
   string url = "/currencies/" + cid;
   string res = Call("GET", false, url, "");
@@ -456,7 +456,7 @@ string API::Get_Currency(string cid)
 
 //Time
 //Get Time
-string API::Get_Time()
+string CBPRAPI::Get_Time()
 {
   string url = "/time";
   string res = Call("GET", false, url, "");
@@ -466,7 +466,7 @@ string API::Get_Time()
 
 //Fills
 //List Fills
-std:: string API::List_Fills(string order_id, string product_id)
+std:: string CBPRAPI::List_Fills(string order_id, string product_id)
 {
   string url = "/fills?";
   if(order_id != ""){
@@ -482,7 +482,7 @@ std:: string API::List_Fills(string order_id, string product_id)
 
 //Payment Methods
 //List_Payment_Methods
-string API::List_Payment_Methods()
+string CBPRAPI::List_Payment_Methods()
 {
   string url = "/payment-methods";
   string res = Call("GET", true, url, "");
@@ -492,7 +492,7 @@ string API::List_Payment_Methods()
 
 //Coinbase Accounts
 //List Coinbase Accounts
-string API::List_Coinbase_Accounts()
+string CBPRAPI::List_Coinbase_Accounts()
 {
   string url = "/coinbase-accounts";
   string res = Call("GET", true, url, "");
@@ -502,7 +502,7 @@ string API::List_Coinbase_Accounts()
 
 //Limits
 //Get Current Exchange Limits
-string API::Get_Current_Exchange_Limits()
+string CBPRAPI::Get_Current_Exchange_Limits()
 {
   string url = "/users/self/exchange-limits";
   string res = Call("GET", true, url, "");
@@ -512,7 +512,7 @@ string API::Get_Current_Exchange_Limits()
 
 //Deposit
 //List Deposits
-string API::List_Deposits(string profile_id, string before, string after, string limit)
+string CBPRAPI::List_Deposits(string profile_id, string before, string after, string limit)
 {
   string url = "/transfers?type=deposit";
   if(profile_id != ""){
@@ -533,7 +533,7 @@ string API::List_Deposits(string profile_id, string before, string after, string
 }
 
 //Single Deposit
-string API::Single_Deposit(string transfer_id)
+string CBPRAPI::Single_Deposit(string transfer_id)
 {
   string url = "/transfers/:" + transfer_id;
   string res = Call("GET", true, url, "");
@@ -542,7 +542,7 @@ string API::Single_Deposit(string transfer_id)
 }
 
 //Payment method
-string API::Payment_Method_Deposit(string amount, string currency, string payment_method_id)
+string CBPRAPI::Payment_Method_Deposit(string amount, string currency, string payment_method_id)
 {
   Document d;
   d.SetObject();
@@ -573,7 +573,7 @@ string API::Payment_Method_Deposit(string amount, string currency, string paymen
 }
 
 //Coinbase Deposit
-string API::Coinbase_Deposit(string amount, string currency, string coinbase_account_id)
+string CBPRAPI::Coinbase_Deposit(string amount, string currency, string coinbase_account_id)
 {
   Document d;
   d.SetObject();
@@ -604,7 +604,7 @@ string API::Coinbase_Deposit(string amount, string currency, string coinbase_acc
 }
 
 //Generate a Crypto Deposit Address
-string API::Generate_Crypto_Deposit_Address(string coinbase_account_id)
+string CBPRAPI::Generate_Crypto_Deposit_Address(string coinbase_account_id)
 {
 
   string res = Call("POST", true, "/coinbase-accounts/" + coinbase_account_id + "/addresses", "");
@@ -614,7 +614,7 @@ string API::Generate_Crypto_Deposit_Address(string coinbase_account_id)
 
 //Withdraw
 //List Withdrawals
-string API::List_Withdrawals(string profile_id, string before, string after, string limit)
+string CBPRAPI::List_Withdrawals(string profile_id, string before, string after, string limit)
 {
   string url = "/transfers?type=withdraw";
   if(profile_id != ""){
@@ -635,7 +635,7 @@ string API::List_Withdrawals(string profile_id, string before, string after, str
 }
 
 //Single Withdrawal
-string API::Single_Withdrawal(string transfer_id)
+string CBPRAPI::Single_Withdrawal(string transfer_id)
 {
   string url = "/transfers/:" + transfer_id;
   string res = Call("GET", true, url, "");
@@ -644,7 +644,7 @@ string API::Single_Withdrawal(string transfer_id)
 }
 
 //Payment method
-string API::Payment_Method_Withdraw(string amount, string currency, string payment_method_id)
+string CBPRAPI::Payment_Method_Withdraw(string amount, string currency, string payment_method_id)
 {
   Document d;
   d.SetObject();
@@ -675,7 +675,7 @@ string API::Payment_Method_Withdraw(string amount, string currency, string payme
 }
 
 //Coinbase Withdraw
-string API::Coinbase_Withdraw(string amount, string currency, string coinbase_account_id)
+string CBPRAPI::Coinbase_Withdraw(string amount, string currency, string coinbase_account_id)
 {
   Document d;
   d.SetObject();
@@ -706,7 +706,7 @@ string API::Coinbase_Withdraw(string amount, string currency, string coinbase_ac
 }
 
 //Crytop Withdraw
-string API::Crypto_Withdraw(string amount, string currency, string crypto_address, string destination_tag, string no_destination_tag, string add_network_fee_to_total)
+string CBPRAPI::Crypto_Withdraw(string amount, string currency, string crypto_address, string destination_tag, string no_destination_tag, string add_network_fee_to_total)
 {
   Document d;
   d.SetObject();
@@ -752,7 +752,7 @@ string API::Crypto_Withdraw(string amount, string currency, string crypto_addres
 }
 
 //Fee Estimate
-string API::Fee_Estimate(string currency, string crypto_address)
+string CBPRAPI::Fee_Estimate(string currency, string crypto_address)
 {
   string url = "/withdrawals/fee-estimate?currency=" + currency + "&crypto_address" + crypto_address;
   string res = Call("GET", true, url, "");
@@ -762,7 +762,7 @@ string API::Fee_Estimate(string currency, string crypto_address)
 
 //Stablecoin Conversions
 //Create Conversion
-string API::Create_Conversion(string from, string to, string amount)
+string CBPRAPI::Create_Conversion(string from, string to, string amount)
 {
   Document d;
   d.SetObject();
@@ -794,7 +794,7 @@ string API::Create_Conversion(string from, string to, string amount)
 
 //Fees
 //Get Current Fees
-string API::Get_Current_Fees()
+string CBPRAPI::Get_Current_Fees()
 {
   string url = "/fees";
   string res = Call("GET", true, url, "");
@@ -804,7 +804,7 @@ string API::Get_Current_Fees()
 
 //Reports
 //Create a new report
-string API::Create_new_report(string type, string start_date, string end_date, string product_id, string account_id, string format, string email)
+string CBPRAPI::Create_new_report(string type, string start_date, string end_date, string product_id, string account_id, string format, string email)
 {
   Document d;
   d.SetObject();
@@ -855,7 +855,7 @@ string API::Create_new_report(string type, string start_date, string end_date, s
 }
 
 //Get report status
-string API::Get_report_status(string report_id)
+string CBPRAPI::Get_report_status(string report_id)
 {
   string url = "/reports/:" + report_id;
   string res = Call("GET", true, url, "");
@@ -864,7 +864,7 @@ string API::Get_report_status(string report_id)
 }
 
 //List Profiles
-string API::List_Profiles(string active)
+string CBPRAPI::List_Profiles(string active)
 {
   string url = "/profiles";
   string res = Call("GET", true, url, "");
@@ -873,7 +873,7 @@ string API::List_Profiles(string active)
 }
 
 //Get a Profile
-string API::Get_Profile(string profile_id)
+string CBPRAPI::Get_Profile(string profile_id)
 {
   string url = "/profiles/" + profile_id;
   string res = Call("GET", true, url, "");
@@ -882,7 +882,7 @@ string API::Get_Profile(string profile_id)
 }
 
 //Create profile transfer
-string API::Create_profile_transfer(string from, string to, string currency, string amount)
+string CBPRAPI::Create_profile_transfer(string from, string to, string currency, string amount)
 {
   Document d;
   d.SetObject();
@@ -919,7 +919,7 @@ string API::Create_profile_transfer(string from, string to, string currency, str
 
 //User Account
 //Trailing Volume
-string API::Trailing_Volume()
+string CBPRAPI::Trailing_Volume()
 {
   string url = "/users/self/trailing-volume";
   string res = Call("GET", true, url, "");
@@ -944,12 +944,12 @@ string API::Trailing_Volume()
 
 
 
-API::API()
+CBPRAPI::CBPRAPI()
 {
   curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
-API::~API()
+CBPRAPI::~CBPRAPI()
 {
   curl_global_cleanup();
 }

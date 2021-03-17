@@ -1,14 +1,15 @@
 // Auth.cpp
 #include "exchange/CBPR/Auth.h"
 #include <iostream>
-#include "cryptopp/cryptlib.h"
+#include <cryptopp/cryptlib.h>
 #include "cryptopp/hmac.h"
 #include "cryptopp/sha.h"
 #include "cryptopp/base64.h"
 #include "cryptopp/filters.h"
 
 
-using namespace std;
+// using namespace std;
+using namespace CryptoPP;
 using CryptoPP::Exception;
 using CryptoPP::HMAC;
 using CryptoPP::SHA256;
@@ -18,10 +19,10 @@ using CryptoPP::StringSink;
 using CryptoPP::StringSource;
 using CryptoPP::HashFilter;
 
-string Auth::Sign(string time_stamp, string method, string path, string body)
+std::string Auth::Sign(std::string time_stamp, std::string method, std::string path, std::string body)
 {
-  string mac, encoded, key;
-  string plain = time_stamp + method + path + body;
+  std::string mac, encoded, key;
+  std::string plain = time_stamp + method + path + body;
   StringSource(Secret, true,
 		  new Base64Decoder(
 			  new StringSink(key)));
@@ -43,11 +44,11 @@ string Auth::Sign(string time_stamp, string method, string path, string body)
   return encoded;
 }
 
-string Auth::GetTimestamp()
+std::string Auth::GetTimestamp()
 {
   time_t t = time(0);
   return std::to_string(t);
 }
 
-Auth::Auth(string key, string secret, string passphrase)
+Auth::Auth(std::string key, std::string secret, std::string passphrase)
 { Key = key; Secret = secret; Passphrase = passphrase; }

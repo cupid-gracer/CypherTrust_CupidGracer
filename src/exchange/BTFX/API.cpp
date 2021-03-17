@@ -44,7 +44,7 @@ string API::Call(string method, bool authed, string path, string body)
     chunk = curl_slist_append(chunk, "accept: application/json");
     if (authed)
     {
-      chunk = curl_slist_append(chunk, ("Authorization: Bearer " + access_token).c_str());
+      // chunk = curl_slist_append(chunk, ("Authorization: Bearer " + access_token).c_str());
     }
     res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
     if (method == "POST")

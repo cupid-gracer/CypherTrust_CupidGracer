@@ -45,7 +45,10 @@ find_package(Casablanca REQUIRED)
 
 include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
-add_executable(cp ${SOURCES})
+file(GLOB HITB "src/exchange/HITB/*.cpp")
+file(GLOB STEX "src/exchange/STEX/*.cpp")
+file(GLOB CBPR "src/exchange/CBPR/*.cpp")
+add_executable(cp ${SOURCES} ${HITB} ${STEX} ${CBPR})
 
 target_link_libraries(cp ${requiredlibs} cpprestsdk::cpprest)
 

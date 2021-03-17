@@ -2,68 +2,32 @@
 #ifndef HITB_H
 #define HITB_H
 
-#include "exchange/HITB/API.h"
 #include <string>
 #include <vector>
 
+#include "rapidjson/document.h"
+#include "exchange/HITB/API.h"
+
 using namespace std;
+using namespace rapidjson;
 
 class HITB
 {
 public:
-    HITB();
+    HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string redisURL, string connectorid);
     ~HITB();
     /* Declare Variables */
-    string uri;
-    string product_id;
-    API api;
+    vector<string> myCoinList;
+    string redisURL;
+    string connectorID;
 
+    HITBAPI api;
 
-    //Public
-    //1 Available symbols
-    void Get_list_symbols();
+    void run();
 
-    //2 Get symbol info
-    void Get_symbol_info();
+    Document currency_data_format();
 
-    //3 Available currencies
-    void Get_list_currencies();
-
-    //4 Get currency info
-    void Get_currency_info();
-
-    //5 Get Tickers
-    void Get_list_tickers();
-
-    //6 Get Tickers
-    void Get_ticker();
-
-    //7 Get list Trades
-    void Get_list_trades();
-
-    //8 Get Trade
-    void Get_trade();
-
-    //9 Get list order
-    void Get_list_orderbook();
-
-    //10 Get order
-    void Get_orderbook();
-
-    //11 Get list Candles
-    void Get_list_candles();
-
-    //12 Get Candle
-    void Get_candle();
-
-    //13 Get Candle
-    void Get_list_orders();
-
-    //14 Get Arbitrage Opportunity
-    void Get_arbitrage_opportunity();
-    
-
-
+    void websock();
 
 };
 
