@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "API.h"
+#include "Util.h"
 
 using namespace std;
 
@@ -12,17 +13,20 @@ class App
 {
 
 public:
-    App(string con_setting_str, string type);
+
+    App(string con_setting_str, string type, string scope);
     ~App();
 
     API api;
     string uri;
+    Util util;
     /* Variable Declare */
     // bootstrap variables
     string  redisManagementChannel,
             redisHeartbeatChannel,
             redisOrderBookChannel,
             redisHost,
+            redisPassword,
             logHost,
             walletName,
             exchangeSecret,
@@ -32,11 +36,11 @@ public:
             exchangeWsUrl,
             exchangeRedisOrderChannel,
             portfolioName,
-            connectorID,
             expiration,
             redisURL,
-            address_id,
-            scope;
+            addressID,
+            scope,
+            redisChannel;
     int redisPort, logPort;
     bool walletEnabled;
     vector<string> coin_included;
@@ -44,8 +48,9 @@ public:
 
     void auth(string user, string password, string type);
 
-    void redisMan();
     void setGlobalValue(string res);
+
+    void redisMan();
 
     void run();
 

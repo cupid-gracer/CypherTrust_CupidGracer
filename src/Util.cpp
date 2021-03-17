@@ -19,10 +19,15 @@
 // using namespace rapidjson;
 using namespace std;
 
-string Util::GetTimestamp()
+long Util::GetNowTimestamp()
 {
     time_t t = time(0);
-    return std::to_string(t);
+    auto now = std::chrono::system_clock::now();
+    auto now_ms = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
+    auto epoch = now_ms.time_since_epoch();
+    auto value = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch);
+    long result = value.count();
+    return result;
 }
 
 // Function to print permutations of string

@@ -232,6 +232,8 @@ bool bootstrap(int argc, char *argv[])
     }
     con_setting_str = res;
 
+    // cout << res << endl;
+    
     size_t pos = res.find("connector");
     string st = con_setting_str.substr(pos, 40);
     Util util = Util();
@@ -253,7 +255,7 @@ int main(int argc, char *argv[])
     {
         return 0;
     }
-    App app(con_setting_str, exchange_type);
+    App app(con_setting_str, exchange_type, scope);
     app.run();
 
     /* Logging */

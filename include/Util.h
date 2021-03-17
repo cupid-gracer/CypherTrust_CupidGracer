@@ -19,7 +19,7 @@ public:
     ~Util();
 
     void permutation(std::string a, int l, int r);
-    std::string GetTimestamp();
+    long GetNowTimestamp();
     int GetNumberCombination(int n, int r);
     void split(std::string &str, char delim, std::vector<std::string> &out);
 
