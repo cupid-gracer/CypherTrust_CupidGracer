@@ -115,12 +115,13 @@ void App::redisMan()
         StringBuffer sb;
         Writer<StringBuffer> w(sb);
         d_pong.Accept(w);
+        sub.consume();
+        redis.publish(redisHeartbeatChannel, sb.GetString());
 
         // Consume messages in a loop.
         while (true) {
             try {
                 sub.consume();
-                redis.publish(redisHeartbeatChannel, sb.GetString());
 
             }
             catch (const Error& err) {
