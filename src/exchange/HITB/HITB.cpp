@@ -25,11 +25,14 @@
 using namespace rapidjson;
 using namespace std;
 
-HITB::HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string redisurl, string connectorid)
+HITB::HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string redisurl, string connectorid, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel)
 {
 	Util util;
 	redisURL = redisurl;
 	connectorID = connectorid;
+	this->redisHeartbeatChannel = redisHeartbeatChannel;
+	this->redisManagementChannel = redisManagementChannel;
+	this->redisOrderBookChannel = redisOrderBookChannel;
 	if (api_key == "" || secret_key == "")
 	{
 		cout << "api, secret key error!";
@@ -46,6 +49,9 @@ HITB::HITB(vector<string> coin_included, string api_key, string secret_key, stri
 
 	api.uri = "https://" + uri;
 	api.token = base64_string;
+	api.addressID = connectorid;
+	api.redisURL = redisURL;
+	api.redisHeartbeatChannel = redisHeartbeatChannel;
 	myCoinList = coin_included;
 }
 
@@ -143,7 +149,7 @@ void HITB::websock()
 		string basesymbol = "ETH";
 		string quotesymbol = "BTC";
 		string uri = "wss://api.hitbtc.com/api/2/ws";
-		HITBWebsock sock(basesymbol, quotesymbol, uri, connectorID, redisURL);
+		HITBWebsock sock(basesymbol, quotesymbol, uri, connectorID, redisURL, redisManagementChannel,redisOrderBookChannel, redisHeartbeatChannel);
 		sock.Connect();
 		this_thread::sleep_for(chrono::seconds(2));
 		int i = 0;

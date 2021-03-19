@@ -19,6 +19,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 
 HITBAPI::HITBAPI()
 {
+  util = Util();
   curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
@@ -78,7 +79,15 @@ string HITBAPI::Call(string method, bool authed, string path, string body)
     }
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+    //set start timestamp before call REST API
+    util.setStartTimestamp();
     res = curl_easy_perform(curl);
+    //set finish timestamp before call REST API
+    util.setFinishTimestamp();
+    //publish latency through redis heartbeat channel
+    util.publishLatency(redisURL, redisHeartbeatChannel, addressID, readBuffer.size(), readBuffer.size());
+
     /* Check for errors */
     if (res != CURLE_OK)
       std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;

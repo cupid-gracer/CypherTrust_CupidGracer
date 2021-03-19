@@ -16,12 +16,15 @@ using namespace std;
 using namespace boost::posix_time;
 
 static int count1 = 0;
+static bool f_start_order = true;
+static bool f_stop_order = false;
+
 void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_message msg)
 {
     try
-    {
+    {   
+        
         string input = msg.extract_string().get();
-        cout << input << endl << endl;
         cout << "------------------------------------------  " << count1++ << endl;
         Document d;
         ParseResult result = d.Parse(input.c_str());
@@ -38,6 +41,14 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
         if (d.HasMember("result") || d.HasMember("error") || !d.HasMember("params"))
             return;
 
+        // when start order, run
+        if(f_start_order)
+        {
+            redisPublishStartOrStop("start");
+            f_start_order = false;
+        }
+
+
         if (d["params"].HasMember("sequence"))
         {
             ts = d["params"]["timestamp"].GetString();
@@ -46,10 +57,10 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
             cout << "timestamp :  " << d["params"]["timestamp"].GetString() << endl;
         }
         Value &bids = d["params"]["bid"];
-        redisPublish(bids, "bid", ts, seq);
+        redisPublishOrder(bids, "bid", ts, seq);
 
         Value &asks = d["params"]["ask"];
-        redisPublish(asks, "ask", ts, seq);
+        redisPublishOrder(asks, "ask", ts, seq);
         
     }
     catch (exception e)
@@ -58,7 +69,7 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
     }
 }
 
-void HITBWebsock::redisPublish(Value &data, string type, string ts, uint64_t seq)
+void HITBWebsock::redisPublishOrder(Value &data, string type, string ts, uint64_t seq)
 {
     long timestamp = util.GetMicroseconds(ts);
     auto redis = Redis(RedisUri);
@@ -83,8 +94,36 @@ void HITBWebsock::redisPublish(Value &data, string type, string ts, uint64_t seq
         StringBuffer sb;
         Writer<StringBuffer> w(sb);
         doc_bid.Accept(w);
-        redis.lpush(to_string(timestamp), sb.GetString());
+
+        redis.publish(redisOrderBookChannel, sb.GetString());
     };
+}
+
+
+void HITBWebsock::redisPublishStartOrStop(string type)
+{
+    auto redis = Redis(RedisUri);
+    string exchange = "hitb";
+    long timestamp = util.GetNowTimestamp();
+
+    Document d;
+    rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+
+    d.SetObject();
+    d.AddMember("connector", Value().SetString(StringRef(ConnectorID.c_str())), allocator);
+    d.AddMember("exchange", Value().SetString(StringRef(exchange.c_str())), allocator);
+    d.AddMember("ts", timestamp, allocator);
+    d.AddMember("seq", 0, allocator);
+    d.AddMember("type", Value().SetString(StringRef(type.c_str())), allocator);
+    d.AddMember("price", "", allocator);
+    d.AddMember("volume", "", allocator);
+    d.AddMember("market", "", allocator);
+
+    StringBuffer sb;
+    Writer<StringBuffer> w(sb);
+    d.Accept(w);
+
+    redis.publish(redisOrderBookChannel, sb.GetString());
 }
 
 void HITBWebsock::send_message(string to_send)
@@ -113,8 +152,7 @@ string HITBWebsock::subscribeOrderbook(bool sub)
     StringBuffer strbuf;
     Writer<StringBuffer> writer(strbuf);
     d.Accept(writer);
-    return strbuf.GetString();
-    
+    return strbuf.GetString();  
 }
 
 void HITBWebsock::Connect()
@@ -133,7 +171,7 @@ void HITBWebsock::Disconnect()
     is_connected = false;
 }
 
-HITBWebsock::HITBWebsock(string basesymbol, string quotesymbol, string uri, string connectorID, string redisUri)
+HITBWebsock::HITBWebsock(string basesymbol, string quotesymbol, string uri, string connectorID, string redisUri, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel)
 {
     util = Util();
     BaseSymbol = basesymbol;
@@ -141,6 +179,9 @@ HITBWebsock::HITBWebsock(string basesymbol, string quotesymbol, string uri, stri
     Uri = uri;
     ConnectorID = connectorID;
     RedisUri = redisUri;
+    this->redisHeartbeatChannel = redisHeartbeatChannel;
+    this->redisManagementChannel = redisManagementChannel;
+    this->redisOrderBookChannel = redisOrderBookChannel;
 }
 
 HITBWebsock::~HITBWebsock()

@@ -74,30 +74,57 @@ void App::redisMan()
 
         // Set callback functions.
         sub.on_message([this](string channel, string msg) {
-            cout << msg << endl;
-            auto redis = Redis(redisURL);
+            try{
 
-            Document d;
-            Document d_ping;
-            rapidjson::Document::AllocatorType &allocator = d_ping.GetAllocator();
-            d_ping.SetObject();
+                cout << msg << endl;
+                auto redis = Redis(redisURL);
 
-            d.Parse(msg.c_str());
-            if(!d.HasMember("type")) return;
-            string type = d["type"].GetString();
-            if(type == "pong") type = "ping";
-            else if(type == "ping") {
-                type = "pong";
-                d_ping.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
+                if(msg == "info"){
+                    Document d_pong;
+                    rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
+                    d_pong.SetObject();
+                    
+                    d_pong.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
+                    d_pong.AddMember("seq", "info", allocator);
+                    d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
+                    d_pong.AddMember("type", "pong", allocator);
+
+                    StringBuffer sb;
+                    Writer<StringBuffer> w(sb);
+                    d_pong.Accept(w);
+                    redis.publish(redisHeartbeatChannel, sb.GetString());
+                    return ;
+                }
+
+
+                Document d;
+                Document d_pong;
+                rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
+                d_pong.SetObject();
+                
+                ParseResult result = d.Parse(msg.c_str());
+                if (!result)
+                {
+                    std::cerr << "JSON parse error: " << msg << endl;
+                    return;
+                }
+                if(!d.HasMember("type")) return;
+                string type = d["type"].GetString();
+                if(type == "pong") return;
+                long seq = d["seq"].GetUint64();
+
+                d_pong.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
+                d_pong.AddMember("seq", seq, allocator);
+                d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
+                d_pong.AddMember("type", "pong", allocator);
+
+                StringBuffer sb;
+                Writer<StringBuffer> w(sb);
+                d_pong.Accept(w);
+                redis.publish(redisHeartbeatChannel, sb.GetString());
+            }catch(exception e){
+                cout << "subscribe error occur :" << e.what() << endl;
             }
-            
-            d_ping.AddMember("ts", util.GetNowTimestamp(), allocator);
-            d_ping.AddMember("type", Value().SetString(StringRef(type.c_str())), allocator);
-
-            StringBuffer sb;
-            Writer<StringBuffer> w(sb);
-            d_ping.Accept(w);
-            redis.publish(redisHeartbeatChannel, sb.GetString());
         });
 
         // Subscribe to channels and patterns.
@@ -116,7 +143,6 @@ void App::redisMan()
         Writer<StringBuffer> w(sb);
         d_pong.Accept(w);
         sub.consume();
-        redis.publish(redisHeartbeatChannel, sb.GetString());
 
         // Consume messages in a loop.
         while (true) {
@@ -140,12 +166,18 @@ void App::redisMan()
 
 void App::setGlobalValue(string res)
 {
+    cout << "test" << endl;
     //  get address id
-    size_t pos = res.find("connector");
+    size_t pos = res.find("\"connector\"");
+    cout << "pos:  " << pos << endl;
+
     string st = res.substr(pos, 40);
     vector<string> st_array;
     util.split(st, '"', st_array);
     addressID = st_array[2];
+
+    cout << "addressID:  " << addressID << endl;
+    
 
     string pre_channel = "cyphertrust_database_";
 
@@ -158,12 +190,11 @@ void App::setGlobalValue(string res)
     redisHost = d["bootstrap"]["redisHost"].GetString();
     redisPort = d["bootstrap"]["redisPort"].GetInt();
     redisPassword = d["bootstrap"]["redisPassword"].GetString();
-    logHost = d["bootstrap"]["logHost"].GetString();
-    logPort = d["bootstrap"]["logPort"].GetInt();
+    // logHost = d["bootstrap"]["logHost"].GetString();
+    // logPort = d["bootstrap"]["logPort"].GetInt();
 
-    redisHeartbeatChannel = pre_channel + d["connector"][Value().SetString(StringRef(addressID.c_str()))]["channel"]["heartbeat"].GetString();
+    redisHeartbeatChannel = pre_channel + d["connector"][Value().SetString(StringRef(addressID.c_str()))]["channel"]["connector"].GetString();
     redisOrderBookChannel = pre_channel + d["connector"][Value().SetString(StringRef(addressID.c_str()))]["channel"]["orderbook"].GetString();
-    redisManagementChannel = pre_channel + d["connector"][Value().SetString(StringRef(addressID.c_str()))]["channel"]["management"].GetString();
     // redisHeartbeatChannel =  + d["connector"][Value().SetString(StringRef(addressID.c_str()))].GetString();
     // redisOrderBookChannel = "cyphertrust_database_" + d["connector"][addressID]["heartbeat"].GetString();
     // redisManagementChannel = "cyphertrust_database_" + d["connector"][addressID]["management"].GetString();
@@ -199,22 +230,19 @@ void App::setGlobalValue(string res)
     //     coin_included.push_back(e[i].GetString());
     // }
     redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
-    // redisURL = "tcp://127.0.0.1:6379";
-    redisChannel = "connectorcyphertrust_database_connector." + addressID;
     redisChannel = "cyphertrust_database_" + addressID;
+
+    cout << "redisHeartbeatChannel: " << redisHeartbeatChannel << endl;
+    cout << "redisManagementChannel: " << redisManagementChannel << endl;
+    cout << "redisOrderBookChannel: " << redisOrderBookChannel << endl;
 
 }
 
 void App::run()
 {
-    while(1)
-    {
-
-    }
+    // while(1){}
     //test
-    type = "STEX";
-    addressID = "e0b3223caee87c25c44c0f1ff6a1ff81a4c21c5e";
-    redisURL = "tcp://127.0.0.1:6379";
+    type = "HITB";
 
     if (type == "BNUS")
     {
@@ -241,7 +269,7 @@ void App::run()
         string api_key = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
         string secret_key = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
         string uri = "api.hitbtc.com/api/2";
-        HITB hitb = HITB(coin_included, api_key, secret_key, uri, redisURL, addressID);
+        HITB hitb = HITB(coin_included, api_key, secret_key, uri, redisURL, addressID, redisManagementChannel, redisOrderBookChannel, redisHeartbeatChannel);
         hitb.run();
     }
     else if (type == "HUOB")

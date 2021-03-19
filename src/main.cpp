@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
     const char *daemonpath = "/";
 
     API auth_api;
-    auth_api.url = "http://auth.dev.cyphertrust.eu/v1/connector";
+    auth_api.url = "https://hub.cyphertrust.eu/v1/connector";
     auth_api.user = "fmaertens";
     auth_api.password = "x2NGo87ympHowidyPMhn";
     auth_api.key = "CBPR";

@@ -19,25 +19,30 @@ private:
 
   Util util;
   web::websockets::client::websocket_callback_client client;
+
   void message_handler(web::websockets::client::websocket_incoming_message msg);
   void send_message(string to_send);
-  void redisPublish(Value &data, string type, string ts, uint64_t seq);
+  void redisPublishOrder(Value &data, string type, string ts, uint64_t seq);
+  void redisPublishStartOrStop(string type);
   string subscribeOrderbook(bool sub);
+
   vector<double> prices;
   vector<double> sizes;
   shared_timed_mutex price_mut, size_mut;
   string BaseSymbol, QuoteSymbol, Uri;
   string RedisUri, ConnectorID;
+  string redisManagementChannel, redisOrderBookChannel, redisHeartbeatChannel;
   bool is_connected;
 
 public:
   double Best_Buy_Price();
   double Best_Sell_Price();
   double MidMarket_Price();
+  void HeartbeatThread();
 
   void Connect();
   void Disconnect();
-  HITBWebsock(string basesymbol, string quotesymbol, string uri, string connectorID, string redisUri);
+  HITBWebsock(string basesymbol, string quotesymbol, string uri, string connectorID, string redisUri, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel);
   ~HITBWebsock();
 };
 #endif // HITBWEBSOCK_H

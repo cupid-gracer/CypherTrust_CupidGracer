@@ -16,15 +16,36 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/date_time.hpp>
 
-// using namespace rapidjson;
+#include <sw/redis++/redis++.h>
+
+/* rapidjson */
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
+
 using namespace std;
+using namespace rapidjson;
+using namespace sw::redis;
+
+
+static string convertToString(char* a, int size) 
+{ 
+    int i; 
+    string s = ""; 
+    for (i = 0; i < size; i++) { 
+        s = s + a[i]; 
+    } 
+    return s; 
+} 
+
 
 long Util::GetNowTimestamp()
 {
     time_t t = time(0);
     auto now = std::chrono::system_clock::now();
-    auto now_ms = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
-    auto epoch = now_ms.time_since_epoch();
+    auto now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
+    auto epoch = now_ns.time_since_epoch();
     auto value = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch);
     long result = value.count();
     return result;
@@ -222,6 +243,41 @@ string Util::GetSHA1Hash(string str)
     return sha1(str);
 }
 
+
+
+
+
+void Util::setStartTimestamp()
+{
+    startTimestamp = GetNowTimestamp();
+}
+
+void Util::setFinishTimestamp()
+{
+    finishTimestamp = GetNowTimestamp();
+}
+
+void Util::publishLatency(string redisURL, string redisHeartbeatChannel, string addressID, int size_req, int size_res)
+{
+    Document d;
+    rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+    d.SetObject();
+    d.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
+    d.AddMember("ts_req", startTimestamp, allocator);
+    d.AddMember("size_req", size_req, allocator);
+    d.AddMember("ts_res", finishTimestamp, allocator);
+    d.AddMember("size_res", size_res, allocator);
+
+    StringBuffer sb;
+    Writer<StringBuffer> w(sb);
+    d.Accept(w);
+    
+    auto redis = Redis(redisURL);
+    redis.publish(redisHeartbeatChannel, sb.GetString());
+}
+
+
+
 Util::Util()
 {
 }
@@ -230,13 +286,3 @@ Util::~Util()
 {
 }
  
-
-static string convertToString(char* a, int size) 
-{ 
-    int i; 
-    string s = ""; 
-    for (i = 0; i < size; i++) { 
-        s = s + a[i]; 
-    } 
-    return s; 
-} 

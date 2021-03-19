@@ -14,12 +14,15 @@ using namespace rapidjson;
 class HITB
 {
 public:
-    HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string redisURL, string connectorid);
+    HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string redisURL, string connectorid, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel);
     ~HITB();
     /* Declare Variables */
     vector<string> myCoinList;
-    string redisURL;
-    string connectorID;
+    string  redisURL,
+            connectorID,
+            redisManagementChannel,
+            redisOrderBookChannel,
+            redisHeartbeatChannel;
 
     HITBAPI api;
 

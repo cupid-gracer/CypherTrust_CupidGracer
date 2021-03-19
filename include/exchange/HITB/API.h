@@ -17,8 +17,11 @@ public:
     HITBAPI();
     ~HITBAPI();
     Util util;
-    string uri;
-    string token;
+    string  uri,
+            token,
+            redisURL,
+            redisHeartbeatChannel,
+            addressID;
 
     //Public
     // Available symbols
