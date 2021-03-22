@@ -1,14 +1,18 @@
 #include "exchange/HITB/Websock.h"
+#include "Util.h"
+
 #include <iostream>
 #include <algorithm>
+#include <shared_mutex>
+#include <thread>
+#include <cmath>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
-#include <shared_mutex>
-#include <thread>
+
 #include <sw/redis++/redis++.h>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include "Util.h"
 
 using namespace rapidjson;
 using namespace sw::redis;
@@ -16,8 +20,9 @@ using namespace std;
 using namespace boost::posix_time;
 
 static int count1 = 0;
-static bool f_start_order = true;
+static bool f_start_order = false;
 static bool f_stop_order = false;
+static long lastTimestamp = 0;
 
 void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_message msg)
 {
@@ -42,10 +47,10 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
             return;
 
         // when start order, run
-        if(f_start_order)
+        if(!f_start_order)
         {
             redisPublishStartOrStop("start");
-            f_start_order = false;
+            f_start_order = true;
         }
 
 
@@ -56,6 +61,9 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
             cout << "sequence :  " << d["params"]["sequence"].GetUint64() << endl;
             cout << "timestamp :  " << d["params"]["timestamp"].GetString() << endl;
         }
+
+        lastTimestamp = util.GetMicroseconds(ts);
+
         Value &bids = d["params"]["bid"];
         redisPublishOrder(bids, "bid", ts, seq);
 
@@ -77,6 +85,7 @@ void HITBWebsock::redisPublishOrder(Value &data, string type, string ts, uint64_
     {
         string price = data[i]["price"].GetString();
         string volume = data[i]["size"].GetString();
+        if(volume == "0") continue;
         string exchange = "hitb";
         Document doc_bid;
         rapidjson::Document::AllocatorType &allocator = doc_bid.GetAllocator();
@@ -155,11 +164,28 @@ string HITBWebsock::subscribeOrderbook(bool sub)
     return strbuf.GetString();  
 }
 
+void HITBWebsock::StopOrder()
+{
+    while(true)
+    {
+        if(f_start_order && !f_stop_order)
+        {
+            long nowTimestamp = util.GetNowTimestamp();
+            if(abs(nowTimestamp - lastTimestamp) >= 10000000000) // 10s
+            {
+                redisPublishStartOrStop("stop");
+                f_stop_order = true;
+                f_start_order = false;
+            }
+        }
+    }
+}
+
 void HITBWebsock::Connect()
 {
     
     client.set_message_handler([this](web::websockets::client::websocket_incoming_message msg) { message_handler(msg); });
-    client.connect(Uri).wait();
+    client.connect(wssURL).wait();
     send_message(subscribeOrderbook(true));
     is_connected = true;
 }
@@ -171,17 +197,19 @@ void HITBWebsock::Disconnect()
     is_connected = false;
 }
 
-HITBWebsock::HITBWebsock(string basesymbol, string quotesymbol, string uri, string connectorID, string redisUri, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel)
+HITBWebsock::HITBWebsock(string basesymbol, string quotesymbol, string wssURL, string connectorID, string redisUri, string redisOrderBookChannel, string redisConnectorChannel)
 {
     util = Util();
     BaseSymbol = basesymbol;
     QuoteSymbol = quotesymbol;
-    Uri = uri;
+    this->wssURL = wssURL;
     ConnectorID = connectorID;
     RedisUri = redisUri;
-    this->redisHeartbeatChannel = redisHeartbeatChannel;
-    this->redisManagementChannel = redisManagementChannel;
+    this->redisConnectorChannel = redisConnectorChannel;
     this->redisOrderBookChannel = redisOrderBookChannel;
+
+    thread th(&HITBWebsock::StopOrder, this);
+    th.detach();
 }
 
 HITBWebsock::~HITBWebsock()

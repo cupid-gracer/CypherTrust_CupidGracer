@@ -22,8 +22,7 @@ public:
     Util util;
     /* Variable Declare */
     // bootstrap variables
-    string  redisManagementChannel,
-            redisHeartbeatChannel,
+    string  redisConnectorChannel,
             redisOrderBookChannel,
             redisHost,
             redisPassword,

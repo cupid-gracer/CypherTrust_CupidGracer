@@ -215,6 +215,7 @@ bool bootstrap(int argc, char *argv[])
     // }
 
     type = "CBPR";
+    type = "HITB";
 
     API auth_api;
     auth_api.url = "https://hub.cyphertrust.eu/v1/connector";

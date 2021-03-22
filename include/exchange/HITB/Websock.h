@@ -24,14 +24,15 @@ private:
   void send_message(string to_send);
   void redisPublishOrder(Value &data, string type, string ts, uint64_t seq);
   void redisPublishStartOrStop(string type);
+  void StopOrder();
   string subscribeOrderbook(bool sub);
 
   vector<double> prices;
   vector<double> sizes;
   shared_timed_mutex price_mut, size_mut;
-  string BaseSymbol, QuoteSymbol, Uri;
+  string BaseSymbol, QuoteSymbol, wssURL;
   string RedisUri, ConnectorID;
-  string redisManagementChannel, redisOrderBookChannel, redisHeartbeatChannel;
+  string redisOrderBookChannel, redisConnectorChannel;
   bool is_connected;
 
 public:
@@ -42,7 +43,7 @@ public:
 
   void Connect();
   void Disconnect();
-  HITBWebsock(string basesymbol, string quotesymbol, string uri, string connectorID, string redisUri, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel);
+  HITBWebsock(string basesymbol, string quotesymbol, string wssURL, string connectorID, string redisUri, string redisOrderBookChannel, string redisConnectorChannel);
   ~HITBWebsock();
 };
 #endif // HITBWEBSOCK_H

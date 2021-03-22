@@ -20,7 +20,7 @@ public:
     string  uri,
             token,
             redisURL,
-            redisHeartbeatChannel,
+            redisConnectorChannel,
             addressID;
 
     //Public

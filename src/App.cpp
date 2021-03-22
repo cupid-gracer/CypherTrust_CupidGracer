@@ -63,11 +63,7 @@ void App::redisMan()
 {
     try
     {
-        // auto redis = Redis("tcp://127.0.0.1:6379");
-        cout << redisURL << endl;
         auto redis = Redis(redisURL);
-        redis.ping();
-        cout << "created!!" << endl;
         
         // Create a Subscriber.
         auto sub = redis.subscriber();
@@ -78,24 +74,6 @@ void App::redisMan()
 
                 cout << msg << endl;
                 auto redis = Redis(redisURL);
-
-                if(msg == "info"){
-                    Document d_pong;
-                    rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
-                    d_pong.SetObject();
-                    
-                    d_pong.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
-                    d_pong.AddMember("seq", "info", allocator);
-                    d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
-                    d_pong.AddMember("type", "pong", allocator);
-
-                    StringBuffer sb;
-                    Writer<StringBuffer> w(sb);
-                    d_pong.Accept(w);
-                    redis.publish(redisHeartbeatChannel, sb.GetString());
-                    return ;
-                }
-
 
                 Document d;
                 Document d_pong;
@@ -121,7 +99,7 @@ void App::redisMan()
                 StringBuffer sb;
                 Writer<StringBuffer> w(sb);
                 d_pong.Accept(w);
-                redis.publish(redisHeartbeatChannel, sb.GetString());
+                redis.publish(redisConnectorChannel, sb.GetString());
             }catch(exception e){
                 cout << "subscribe error occur :" << e.what() << endl;
             }
@@ -129,21 +107,8 @@ void App::redisMan()
 
         // Subscribe to channels and patterns.
 
-        cout << redisHeartbeatChannel << endl;
-        sub.subscribe(redisHeartbeatChannel);
-
-        Document d_pong;
-        rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
-        d_pong.SetObject();
-        d_pong.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
-        d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
-        d_pong.AddMember("type", "pong", allocator);
-
-        StringBuffer sb;
-        Writer<StringBuffer> w(sb);
-        d_pong.Accept(w);
-        sub.consume();
-
+        sub.subscribe(redisConnectorChannel);
+      
         // Consume messages in a loop.
         while (true) {
             try {
@@ -166,18 +131,13 @@ void App::redisMan()
 
 void App::setGlobalValue(string res)
 {
-    cout << "test" << endl;
     //  get address id
     size_t pos = res.find("\"connector\"");
-    cout << "pos:  " << pos << endl;
 
     string st = res.substr(pos, 40);
     vector<string> st_array;
     util.split(st, '"', st_array);
     addressID = st_array[2];
-
-    cout << "addressID:  " << addressID << endl;
-    
 
     string pre_channel = "cyphertrust_database_";
 
@@ -185,33 +145,27 @@ void App::setGlobalValue(string res)
     d.Parse(res.c_str());
 
     // get redis info
-    // redisHeartbeatChannel = d["bootstrap"]["redisHeartbeatChannel"].GetString();
-    // redisOrderBookChannel = d["bootstrap"]["redisOrderBookChannel"].GetString();
     redisHost = d["bootstrap"]["redisHost"].GetString();
     redisPort = d["bootstrap"]["redisPort"].GetInt();
     redisPassword = d["bootstrap"]["redisPassword"].GetString();
-    // logHost = d["bootstrap"]["logHost"].GetString();
-    // logPort = d["bootstrap"]["logPort"].GetInt();
 
-    redisHeartbeatChannel = pre_channel + d["connector"][Value().SetString(StringRef(addressID.c_str()))]["channel"]["connector"].GetString();
-    redisOrderBookChannel = pre_channel + d["connector"][Value().SetString(StringRef(addressID.c_str()))]["channel"]["orderbook"].GetString();
-    // redisHeartbeatChannel =  + d["connector"][Value().SetString(StringRef(addressID.c_str()))].GetString();
-    // redisOrderBookChannel = "cyphertrust_database_" + d["connector"][addressID]["heartbeat"].GetString();
-    // redisManagementChannel = "cyphertrust_database_" + d["connector"][addressID]["management"].GetString();
+    Value& val_connector = d["connector"][Value().SetString(StringRef(addressID.c_str()))];
 
-    // redisManagementChannel = d["address"]["redisManagementChannel"].GetString();
-    // addressID = d["address"]["id"].GetString();
-    // expiration = d["address"]["expiration"].GetString();
+    redisConnectorChannel = pre_channel + val_connector["channel"]["connector"].GetString();
+    redisOrderBookChannel = pre_channel + val_connector["channel"]["orderbook"].GetString();
+    
 
-    // walletName      = c[0]["wallet"]["walletName"].GetString();
-    // walletEnabled   = c[0]["wallet"]["walletEnabled"].GetBool();
-    // exchangeSecret  = c[0]["wallet"]["exchangeSecret"].GetString();
-    // exchangePassword = c[0]["wallet"]["exchangePassword"].GetString();
-    // exchangeKey     = c[0]["wallet"]["exchangeKey"].GetString();
-    // exchangeApiUrl  = c[0]["wallet"]["exchangeApiUrl"].GetString();
-    // exchangeWsUrl   = c[0]["wallet"]["exchangeWsUrl"].GetString();
-    // exchangeRedisOrderChannel = c[0]["wallet"]["exchangeRedisOrderChannel"].GetString();
-    // portfolioName   = c[0]["wallet"]["portfolioName"].GetString();
+    // walletName      = val_connector["wallet"]["walletName"].GetString();
+    // walletEnabled   = val_connector["wallet"]["walletEnabled"].GetBool();
+    // exchangeSecret  = val_connector["wallet"]["exchangeSecret"].GetString();
+    // exchangePassword = val_connector["wallet"]["exchangePassword"].GetString();
+    // exchangeKey     = val_connector["wallet"]["exchangeKey"].GetString();
+    exchangeApiUrl  = val_connector["wallet"]["exchangeApiUrl"].GetString();
+    exchangeWsUrl   = val_connector["wallet"]["exchangeWsUrl"].GetString();
+    // exchangeRedisOrderChannel = val_connector["wallet"]["exchangeRedisOrderChannel"].GetString();
+    // portfolioName   = val_connector["wallet"]["portfolioName"].GetString();
+
+    
     walletName = "Coinbase Pro Sandbox Dev";
     walletEnabled = true;
     exchangeSecret = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
@@ -231,10 +185,6 @@ void App::setGlobalValue(string res)
     // }
     redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
     redisChannel = "cyphertrust_database_" + addressID;
-
-    cout << "redisHeartbeatChannel: " << redisHeartbeatChannel << endl;
-    cout << "redisManagementChannel: " << redisManagementChannel << endl;
-    cout << "redisOrderBookChannel: " << redisOrderBookChannel << endl;
 
 }
 
@@ -269,7 +219,7 @@ void App::run()
         string api_key = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
         string secret_key = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
         string uri = "api.hitbtc.com/api/2";
-        HITB hitb = HITB(coin_included, api_key, secret_key, uri, redisURL, addressID, redisManagementChannel, redisOrderBookChannel, redisHeartbeatChannel);
+        HITB hitb = HITB(coin_included, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
         hitb.run();
     }
     else if (type == "HUOB")

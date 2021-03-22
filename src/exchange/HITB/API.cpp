@@ -86,7 +86,7 @@ string HITBAPI::Call(string method, bool authed, string path, string body)
     //set finish timestamp before call REST API
     util.setFinishTimestamp();
     //publish latency through redis heartbeat channel
-    util.publishLatency(redisURL, redisHeartbeatChannel, addressID, readBuffer.size(), readBuffer.size());
+    util.publishLatency(redisURL, redisConnectorChannel, addressID, readBuffer.size(), readBuffer.size());
 
     /* Check for errors */
     if (res != CURLE_OK)

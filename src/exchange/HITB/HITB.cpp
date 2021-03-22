@@ -25,14 +25,14 @@
 using namespace rapidjson;
 using namespace std;
 
-HITB::HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string redisurl, string connectorid, string redisManagementChannel, string redisOrderBookChannel, string redisHeartbeatChannel)
+HITB::HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel)
 {
 	Util util;
 	redisURL = redisurl;
 	connectorID = connectorid;
-	this->redisHeartbeatChannel = redisHeartbeatChannel;
-	this->redisManagementChannel = redisManagementChannel;
+	this->redisConnectorChannel = redisConnectorChannel;
 	this->redisOrderBookChannel = redisOrderBookChannel;
+	this->wssURL = wssURL;
 	if (api_key == "" || secret_key == "")
 	{
 		cout << "api, secret key error!";
@@ -51,7 +51,7 @@ HITB::HITB(vector<string> coin_included, string api_key, string secret_key, stri
 	api.token = base64_string;
 	api.addressID = connectorid;
 	api.redisURL = redisURL;
-	api.redisHeartbeatChannel = redisHeartbeatChannel;
+	api.redisConnectorChannel = redisConnectorChannel;
 	myCoinList = coin_included;
 }
 
@@ -148,8 +148,8 @@ void HITB::websock()
 	{
 		string basesymbol = "ETH";
 		string quotesymbol = "BTC";
-		string uri = "wss://api.hitbtc.com/api/2/ws";
-		HITBWebsock sock(basesymbol, quotesymbol, uri, connectorID, redisURL, redisManagementChannel,redisOrderBookChannel, redisHeartbeatChannel);
+		wssURL = "wss://api.hitbtc.com/api/2/ws";
+		HITBWebsock sock(basesymbol, quotesymbol, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
 		sock.Connect();
 		this_thread::sleep_for(chrono::seconds(2));
 		int i = 0;
