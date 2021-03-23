@@ -26,6 +26,7 @@ public:
 
     string auth();
     bool del_address(string address_id);
+    void ping(string address_id);
     
 
 

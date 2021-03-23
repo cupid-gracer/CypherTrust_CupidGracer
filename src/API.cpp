@@ -163,3 +163,17 @@ bool API::del_address(string address_id)
   }
   return false;
 }
+
+
+void API::ping(string address_id)
+{
+  string res = Call("GET", false, "/heartbeat/" + address_id, "");
+  Document d;
+  d.Parse(res.c_str());
+  cout << res << endl;
+  // if(d.HasMember("address"))
+  // {
+  //   return true;
+  // }
+  // return false;
+}

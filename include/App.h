@@ -6,6 +6,7 @@
 #include <vector>
 #include "API.h"
 #include "Util.h"
+#include "exchange/HITB/HITB.h"
 
 using namespace std;
 
@@ -14,12 +15,17 @@ class App
 
 public:
 
-    App(string con_setting_str, string type, string scope);
+    App();
+    App(int* signal_status, string con_setting_str, string type, string scope, API api);
     ~App();
 
     API api;
     string uri;
     Util util;
+    int* signal_status;
+
+    HITB hitb;
+    CBPR cbpr;
     /* Variable Declare */
     // bootstrap variables
     string  redisConnectorChannel,
@@ -44,14 +50,13 @@ public:
     bool walletEnabled;
     vector<string> coin_included;
     string type;
-
     void auth(string user, string password, string type);
 
     void setGlobalValue(string res);
 
     void redisMan();
 
-    void run();
+    void run(bool StartOrStop);
 
 };
 

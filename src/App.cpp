@@ -32,13 +32,19 @@ using namespace std;
 
 
 
- 
-
-App::App(string con_setting_str, string type, string scope)
+App::App()
 {
+    cout << "App() called!" << endl;
+}
+
+App::App(int* signal_status, string con_setting_str, string type, string scope, API api)
+{
+    cout << "App( ******** ) called!" << endl;
     try
     {
-        util = Util();
+        this->signal_status = signal_status;
+        this->util = Util();
+        this->api = api;
 
         this->type = type;
         this->scope = scope;
@@ -57,6 +63,7 @@ App::App(string con_setting_str, string type, string scope)
 
 App::~App()
 {
+    cout << "~app ()  called!" << endl;
 }
 
 void App::redisMan()
@@ -91,10 +98,13 @@ void App::redisMan()
                 if(type == "pong") return;
                 long seq = d["seq"].GetUint64();
 
-                d_pong.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
-                d_pong.AddMember("seq", seq, allocator);
-                d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
                 d_pong.AddMember("type", "pong", allocator);
+                d_pong.AddMember("object", "connector", allocator);
+                d_pong.AddMember("address", Value().SetString(StringRef(addressID.c_str())), allocator);
+                d_pong.AddMember("status", "online", allocator);
+                d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
+                d_pong.AddMember("seq", seq, allocator);
+                d_pong.AddMember("latency", NULL, allocator);
 
                 StringBuffer sb;
                 Writer<StringBuffer> w(sb);
@@ -184,13 +194,13 @@ void App::setGlobalValue(string res)
     //     coin_included.push_back(e[i].GetString());
     // }
     redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
+    cout << "redis URL : "  << redisURL << endl;
     redisChannel = "cyphertrust_database_" + addressID;
-
 }
 
-void App::run()
+void App::run(bool StartOrStop)
 {
-    // while(1){}
+    cout << "------------    app  run   ----------------    "<<  StartOrStop  << endl;
     //test
     type = "HITB";
 
@@ -210,17 +220,34 @@ void App::run()
         string api_key = "11dfbdd50299d30a03ea46736da2cb73";
         string secret = "Aw4LtSL8CPTciYXVqV7s1ZZyiFdWgIu0nDeHWuGqK5LvUgAi1ACPPyiJY4uN65+7DgF9D0QzAVGFp4FaVHmWxw==";
         string passcode = "k7on2nlkl1s";
+        
+        if(StartOrStop)
+        {
 
-        CBPR cbpr = CBPR(coin_included, api_uri, api_key, secret, passcode, redisURL, addressID);
-        cbpr.run();
+            cbpr = CBPR(coin_included, api_uri, api_key, secret, passcode, redisURL, addressID);
+            cbpr.run();
+        }
+        else
+        {
+            cbpr.~CBPR();
+        }
     }
     else if (type == "HITB")
     {
-        string api_key = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
-        string secret_key = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
-        string uri = "api.hitbtc.com/api/2";
-        HITB hitb = HITB(coin_included, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
-        hitb.run();
+            string api_key = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
+            string secret_key = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
+            string uri = "api.hitbtc.com/api/2";
+            
+        if(StartOrStop)
+        {
+            cout << "HITB init : " << endl;
+            hitb = HITB(coin_included, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
+            hitb.run();
+        }
+        else
+        {
+            hitb.~HITB();
+        }
     }
     else if (type == "HUOB")
     {

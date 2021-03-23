@@ -39,7 +39,7 @@ void CBPRWebsock::message_handler(web::websockets::client::websocket_incoming_me
     }
     else if (type == "l2update")
     {
-        long timestamp = util.GetMicroseconds(d["time"].GetString());
+        long timestamp = util.ConvertNanoseconds(d["time"].GetString());
         string market = d["product_id"].GetString();
         string exchange = "cbpr";
         cout << "-------------------  " << seq << endl << market << endl;

@@ -37,6 +37,10 @@ CBPR::CBPR(vector<string> coin_included, string api_uri, string api_key, string 
 
 }
 
+CBPR::CBPR()
+{
+}
+
 CBPR::~CBPR()
 {
 }

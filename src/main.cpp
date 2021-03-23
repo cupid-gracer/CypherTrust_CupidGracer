@@ -32,39 +32,73 @@ using namespace std::chrono;
 void signal_handler(int sig);
 void daemonize(const char *rundir, const char *pidfile);
 void daemonShutdown();
-
+void startThread();
+void stopThread();
+bool getConsoleValue();
+void releaseAddress();
+bool Bootstraping();
 //Daemon variable
 string con_setting_str = "";
 bool exitdaemon = false;
 int pidFilehandle;
-string exchange_type;
-string address_id;
-string scope;
+string  userName,
+        password,
+        exchange_type,
+        address_id,
+        scope;
+API auth_api;
+App app;
+int signal_status;
 
 //Daemon Processing
 void signal_handler(int sig)
 {
     openlog(DAEMON_NAME, LOG_CONS | LOG_PERROR, LOG_USER);
+        cout << "sig working" << endl;
+
     switch (sig)
     {
     case SIGHUP:
         syslog(LOG_INFO, "Terminal was closed");
-        break;
-    case SIGTERM:
-        syslog(LOG_INFO, "Graceful termination");
-        exitdaemon = true;
-        break;
-    case SIGKILL:
-        syslog(LOG_INFO, "Forced termination with core dump");
-        break;
-    case SIGQUIT:
-        syslog(LOG_INFO, "Forced termination");
-        break;
-    case SIGCONT:
-        syslog(LOG_INFO, "Execution continued after pause");
+        cout << "Terminal was closed" << endl;
+        signal_status = 1;
+        stopThread();
+        releaseAddress();
+        Bootstraping();
+        startThread();
         break;
     case SIGSTOP:
         syslog(LOG_INFO, "Execution paused");
+        cout << "Execution paused" << endl;
+        signal_status = 2;
+        stopThread();
+        break;
+    case SIGCONT:
+        syslog(LOG_INFO, "Execution continued after pause");
+        cout << "Execution continued after pause" << endl;
+        startThread();
+        signal_status = 3;
+        break;
+    case SIGTERM:
+        syslog(LOG_INFO, "Graceful termination");
+        cout << "Graceful termination" << endl;
+        stopThread();
+        releaseAddress();
+        exitdaemon = true;
+        signal_status = 4;
+        break;
+    case SIGQUIT:
+        syslog(LOG_INFO, "Forced termination");
+        cout << "Forced termination" << endl;
+        stopThread();
+        releaseAddress();
+        exitdaemon = true;
+        signal_status = 5;
+        break;
+    case SIGKILL:
+        syslog(LOG_INFO, "Forced termination with core dump");
+        cout << "Forced termination with core dump" << endl;
+        signal_status = 6;
         break;
     }
 }
@@ -91,6 +125,7 @@ void daemonize(const char *rundir, const char *pidfile)
     sigaddset(&newSigSet, SIGTTIN);           /* ignore Tty background reads */
     sigprocmask(SIG_BLOCK, &newSigSet, NULL); /* Block the above specified signals */
 
+    cout << "daemonize called" << endl;
     /* Set up a signal handler */
     newSigAction.sa_handler = signal_handler;
     sigemptyset(&newSigAction.sa_mask);
@@ -104,6 +139,7 @@ void daemonize(const char *rundir, const char *pidfile)
     sigaction(SIGCONT, &newSigAction, NULL); /* Continue the order book streaming */
     sigaction(SIGSTOP, &newSigAction, NULL); /* Pause the order book streaming  */
 
+    return;
     /* Fork*/
     pid = fork();
 
@@ -183,46 +219,52 @@ void daemonShutdown()
     close(pidFilehandle);
 }
 
-/* Bootstrap Processing */
-bool bootstrap(int argc, char *argv[])
+bool getConsoleValue(int argc, char *argv[])
 {
-    string user, password, type;
-    // if(argc < 7) {
-    //     cout << "Number of parameters is not correct!" << endl;
-    //     return false;
-    // }
+    if(argc < 7) {
+        cout << "Number of parameters is not correct!" << endl;
+        return false;
+    }
 
-    // for(int i = 0; i < argc; i++)
-    // {
-    //     string s = argv[i];
-    //     if(s == "-u")
-    //     {
-    //         user = argv[i+1];
-    //     }
-    //     if(s == "-p")
-    //     {
-    //         password = argv[i+1];
-    //     }
-    //     if(s == "-t")
-    //     {
-    //         type = argv[i+1];
-    //     }
-    // }
-    // if(user == "" || password == "" || type == "")
-    // {
-    //     cout << "The parameters you inputed are wrong!" << endl;
-    //     return false;
-    // }
+    for(int i = 0; i < argc; i++)
+    {
+        string s = argv[i];
+        if(s == "-u")
+        {
+            userName = argv[i+1];
+        }
+        if(s == "-p")
+        {
+            password = argv[i+1];
+        }
+        if(s == "-t")
+        {
+            exchange_type = argv[i+1];
+        }
+    }
+    if(userName == "" || password == "" || exchange_type == "")
+    {
+        cout << "The parameters you inputed are wrong!" << endl;
+        return false;
+    }
+    return true;
+}
+/* Bootstrap Processing */
+bool Bootstraping()
+{
+    exchange_type = "HITB";
 
-    type = "CBPR";
-    type = "HITB";
-
-    API auth_api;
     auth_api.url = "https://hub.cyphertrust.eu/v1/connector";
+
+    // auth_api.user = userName;
+    // auth_api.password = password;
+    // auth_api.key = exchange_type;
+
+
     auth_api.user = "fmaertens";
     auth_api.password = "x2NGo87ympHowidyPMhn";
-    auth_api.key = type;
-    exchange_type = type;
+    auth_api.key = exchange_type;
+
 
     //test
     string res = auth_api.auth();
@@ -244,22 +286,31 @@ bool bootstrap(int argc, char *argv[])
     string str_s = auth_api.user + "" + auth_api.password + "" +  exchange_type ;
     scope = util.GetSHA1Hash(str_s);
 
+    //app create
+    app = App(&signal_status, con_setting_str, exchange_type, scope, auth_api);
+
     return true;
 }
 
-/* main */
-int main(int argc, char *argv[])
+void releaseAddress()
 {
+    // delete address id 
+    auth_api.del_address(address_id);
+}
 
-    /* Bootstraping... */
-    if (!bootstrap(argc, argv))
-    {
-        return 0;
-    }
-    App app(con_setting_str, exchange_type, scope);
-    app.run();
+void startThread()
+{
+    app.run(true);
+}
 
-    /* Logging */
+void stopThread()
+{
+    app.run(false);
+}
+
+void daemonThread()
+{
+    // /* Logging */
     setlogmask(LOG_UPTO(LOG_INFO));
     openlog(DAEMON_NAME, LOG_CONS | LOG_PERROR, LOG_USER);
 
@@ -270,25 +321,48 @@ int main(int argc, char *argv[])
     const char *daemonpid = "/home/cupid/srv_test.pid";
     const char *daemonpath = "/";
 
-    API auth_api;
-    auth_api.url = "https://hub.cyphertrust.eu/v1/connector";
-    auth_api.user = "fmaertens";
-    auth_api.password = "x2NGo87ympHowidyPMhn";
-    auth_api.key = "CBPR";
 
-    //test
-    auth_api.del_address(address_id);
+    daemonize(daemonpath, daemonpid);
 
-    // daemonize(daemonpath, daemonpid);
+    syslog(LOG_INFO, "CrypherTrust Daemon running");
+    app.run(true);
+    int i = 0;
+    while (1)
+        {
+            if (i++ > 5)
+                break;
+            this_thread::sleep_for(chrono::seconds(3));
+        }
+    app.run(false);
 
-    // syslog(LOG_INFO, "CrypherTrust Daemon running");
+    while (!exitdaemon)
+    {
+        sleep(10);
+    }
 
-    // while (!exitdaemon)
+    daemonShutdown();
+}
+
+
+/* main */
+int main(int argc, char *argv[])
+{
+    /* get arguments from console */
+    // if(!getConsoleValue(argc, argv))
     // {
-    //     sleep(10);
+    //     return 0;
     // }
+    cout << "-------     Bootstraping start    ---------" << endl;
 
-    // daemonShutdown();
+    /* Bootstraping... */
+    if (!Bootstraping())
+    {
+        return 0;
+    }
+
+    cout << "-------     daemon start    ---------" << endl;
+    /* daemon Thread start */
+    daemonThread();
 
     return 0;
 }

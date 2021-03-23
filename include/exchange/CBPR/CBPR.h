@@ -11,6 +11,7 @@ using namespace std;
 class CBPR
 {
 public:
+    CBPR();
     CBPR(vector<string> coin_included, string api_uri, string api_key, string secret, string passcode, string redisurl, string connectorID);
     ~CBPR();
     /* Declare Variables */

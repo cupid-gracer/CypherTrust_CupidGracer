@@ -138,7 +138,7 @@ long STEX::Get_serverTimestamp()
 	Document d;
 	d.Parse(str.c_str());
 	string ts = d["data"]["server_datetime"].GetString();
-	long timestamp = util.GetMicroseconds(ts);
+	long timestamp = util.ConvertNanoseconds(ts);
 	return timestamp;
 }
 

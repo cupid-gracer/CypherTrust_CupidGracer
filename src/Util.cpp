@@ -222,7 +222,7 @@ int Util::Base64encode(char *encoded, const char *string, int len)
     return p - encoded;
 }
 
-long Util::GetMicroseconds(string timestamp)
+long Util::ConvertNanoseconds(string timestamp)
 {
     using boost::posix_time::ptime;
     ptime pt;
@@ -234,7 +234,7 @@ long Util::GetMicroseconds(string timestamp)
         iss.imbue(loc);
         iss >> pt;
     }
-    long result = (pt - ptime{{1970, 1, 1}, {}}).total_microseconds();
+    long result = (pt - ptime{{1970, 1, 1}, {}}).total_nanoseconds();
     return result;
 }
 

@@ -30,14 +30,13 @@ public:
     int Base64decode_len(const char * coded_src);
     int Base64decode(char * plain_dst, const char *coded_src);
 
-    long GetMicroseconds(string timestamp);
+    long ConvertNanoseconds(string timestamp);
 
     string GetSHA1Hash(string str);
 
     void setStartTimestamp();
     void setFinishTimestamp();
     void publishLatency(string redisURL, string redisHeartbeatChannel, string addressID, int size_req, int size_res);
-
 
 };
 

@@ -25,11 +25,11 @@
 using namespace rapidjson;
 using namespace std;
 
-HITB::HITB(vector<string> coin_included, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel)
+HITB::HITB( vector<string> coin_included, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel)
 {
 	Util util;
-	redisURL = redisurl;
-	connectorID = connectorid;
+	this->redisURL = redisurl;
+	this->connectorID = connectorid;
 	this->redisConnectorChannel = redisConnectorChannel;
 	this->redisOrderBookChannel = redisOrderBookChannel;
 	this->wssURL = wssURL;
@@ -53,11 +53,14 @@ HITB::HITB(vector<string> coin_included, string api_key, string secret_key, stri
 	api.redisURL = redisURL;
 	api.redisConnectorChannel = redisConnectorChannel;
 	myCoinList = coin_included;
+
+	thread th(&HITB::StartStopWebsock, this);
+    th.detach();
+	
 }
 
-HITB::~HITB()
-{
-}
+
+
 
 Document HITB::currency_data_format()
 {
@@ -144,13 +147,18 @@ void HITB::run()
 
 void HITB::websock()
 {
+	cout << "web socket start !" << endl;
+
 	try
 	{
 		string basesymbol = "ETH";
 		string quotesymbol = "BTC";
 		wssURL = "wss://api.hitbtc.com/api/2/ws";
-		HITBWebsock sock(basesymbol, quotesymbol, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
+		sock = HITBWebsock(basesymbol, quotesymbol, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
+
 		sock.Connect();
+		cout << "web socket connected !" << endl;
+
 		this_thread::sleep_for(chrono::seconds(2));
 		int i = 0;
 		while (1)
@@ -159,10 +167,27 @@ void HITB::websock()
 				break;
 			this_thread::sleep_for(chrono::seconds(3));
 		}
-		sock.Disconnect();
+		
 	}
 	catch (exception e)
 	{
 		cout << "error occur: " << e.what() << endl;
 	}
+}
+
+
+void HITB::StartStopWebsock()
+{
+	
+}
+
+HITB::HITB()
+{
+}
+
+
+HITB::~HITB()
+{
+	cout << "~HITB() called  !!!!!!!!!!" << endl;
+	sock.Disconnect();
 }
