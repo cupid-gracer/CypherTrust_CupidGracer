@@ -23,6 +23,7 @@ static int count1 = 0;
 static bool f_start_order = false;
 static bool f_stop_order = false;
 static long lastTimestamp = 0;
+static long timeSub = 60000000000;
 
 void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_message msg)
 {
@@ -44,14 +45,7 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
         if (d.HasMember("result") || d.HasMember("error") || !d.HasMember("params"))
             return;
 
-        lastTimestamp = util.ConvertNanoseconds(ts);
-
-        // when start order, run
-        if(!f_start_order)
-        {
-            redisPublishStartOrStop("start");
-            f_start_order = true;
-        }
+        
 
 
         cout << "------------------------------------------  " << count1++ << endl;
@@ -79,6 +73,24 @@ void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_me
 
 void HITBWebsock::redisPublishOrder(Value &data, string type, string ts, uint64_t seq)
 {
+    lastTimestamp = util.ConvertNanoseconds(ts);
+
+    long nowTimestamp = util.GetNowTimestamp();
+    if(abs(nowTimestamp - lastTimestamp) >= timeSub) // 10s
+    {
+        cout << "time sub :  " << abs(nowTimestamp - lastTimestamp) << endl;
+        return;
+    }
+
+    // when start order, run
+    if(!f_start_order)
+    {
+        redisPublishStartOrStop("start");
+        f_start_order = true;
+        f_stop_order = false;
+    }
+
+
     long timestamp = util.ConvertNanoseconds(ts);
     auto redis = Redis(RedisUri);
     for (int i = 0; i < data.Size(); i++)
@@ -103,8 +115,9 @@ void HITBWebsock::redisPublishOrder(Value &data, string type, string ts, uint64_
         StringBuffer sb;
         Writer<StringBuffer> w(sb);
         doc_bid.Accept(w);
-
-        redis.publish(redisOrderBookChannel, sb.GetString());
+        if(!f_stop_order){
+            redis.publish(redisOrderBookChannel, sb.GetString());
+        }
         break;
     };
 }
@@ -197,9 +210,12 @@ void HITBWebsock::Connect()
 void HITBWebsock::Disconnect()
 {
     if(is_connected){
+        cout << "web socket disconnect!!!" << endl;
         send_message(subscribeOrderbook(false));
         client.close().wait();
         is_connected = false;
+        f_start_order = false;
+        f_stop_order = false;
         redisPublishStartOrStop("stop");
     }
 }
@@ -217,9 +233,7 @@ HITBWebsock::HITBWebsock( string basesymbol, string quotesymbol, string wssURL, 
     this->redisOrderBookChannel = redisOrderBookChannel;
 }
 
-HITBWebsock::HITBWebsock()
-{
-}
+
 
 HITBWebsock::~HITBWebsock()
 {

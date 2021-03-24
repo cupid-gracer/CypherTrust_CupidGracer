@@ -29,7 +29,7 @@ public:
             redisOrderBookChannel;
 
     HITBAPI api;
-    HITBWebsock sock;
+    HITBWebsock* sock;
 
     void run();
 

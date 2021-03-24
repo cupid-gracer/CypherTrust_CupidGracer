@@ -47,14 +47,14 @@ string  userName,
         address_id,
         scope;
 API auth_api;
-App app;
+App *app;
 int signal_status;
 
 //Daemon Processing
 void signal_handler(int sig)
 {
     openlog(DAEMON_NAME, LOG_CONS | LOG_PERROR, LOG_USER);
-        cout << "sig working" << endl;
+        cout << "sig working.........." << endl;
 
     switch (sig)
     {
@@ -125,7 +125,6 @@ void daemonize(const char *rundir, const char *pidfile)
     sigaddset(&newSigSet, SIGTTIN);           /* ignore Tty background reads */
     sigprocmask(SIG_BLOCK, &newSigSet, NULL); /* Block the above specified signals */
 
-    cout << "daemonize called" << endl;
     /* Set up a signal handler */
     newSigAction.sa_handler = signal_handler;
     sigemptyset(&newSigAction.sa_mask);
@@ -139,6 +138,7 @@ void daemonize(const char *rundir, const char *pidfile)
     sigaction(SIGCONT, &newSigAction, NULL); /* Continue the order book streaming */
     sigaction(SIGSTOP, &newSigAction, NULL); /* Pause the order book streaming  */
 
+    cout << "daemonize called" << endl;
     return;
     /* Fork*/
     pid = fork();
@@ -252,6 +252,7 @@ bool getConsoleValue(int argc, char *argv[])
 /* Bootstrap Processing */
 bool Bootstraping()
 {
+    cout << "----   bootstrapping started  -----------"  << endl;
     exchange_type = "HITB";
 
     auth_api.url = "https://hub.cyphertrust.eu/v1/connector";
@@ -286,8 +287,9 @@ bool Bootstraping()
     string str_s = auth_api.user + "" + auth_api.password + "" +  exchange_type ;
     scope = util.GetSHA1Hash(str_s);
 
-    //app create
-    app = App(&signal_status, con_setting_str, exchange_type, scope, auth_api);
+    
+
+    cout << "----   bootstrapping finished  -----------"  << endl;
 
     return true;
 }
@@ -295,21 +297,34 @@ bool Bootstraping()
 void releaseAddress()
 {
     // delete address id 
+    cout << "----   releaseAddress started  -----------"  << endl;
     auth_api.del_address(address_id);
+    cout << "----   releaseAddress finished  -----------"  << endl;
 }
 
 void startThread()
 {
-    app.run(true);
+    cout << "----   startThread started  -----------"  << endl;
+    //app create
+    app = new App(&signal_status, con_setting_str, exchange_type, scope, auth_api);
+    app->run(true);
+    cout << "----   startThread end  -----------"  << endl;
 }
 
 void stopThread()
 {
-    app.run(false);
+    cout << "----   stopThread start  -----------"  << endl;
+    // app.run(false);
+    cout << "----   app.~App(); start  -----------"  << endl;
+    app->~App();
+    cout << "----   app.~App(); end  -----------"  << endl;
+    cout << "----   stopThread end  -----------"  << endl;
 }
 
-void daemonThread()
+void daemonThreadStart()
 {
+    cout << "-------     daemon start    ---------" << endl;
+
     // /* Logging */
     setlogmask(LOG_UPTO(LOG_INFO));
     openlog(DAEMON_NAME, LOG_CONS | LOG_PERROR, LOG_USER);
@@ -325,7 +340,14 @@ void daemonThread()
     daemonize(daemonpath, daemonpid);
 
     syslog(LOG_INFO, "CrypherTrust Daemon running");
-    app.run(true);
+
+
+    // app.run(true);
+    
+}
+
+void daemonThreadShutdown()
+{
     int i = 0;
     while (1)
         {
@@ -333,17 +355,16 @@ void daemonThread()
                 break;
             this_thread::sleep_for(chrono::seconds(3));
         }
-    app.run(false);
+    // app.run(false);
 
     while (!exitdaemon)
     {
         sleep(10);
     }
+    cout << "-------     daemon end    ---------" << endl;
 
     daemonShutdown();
 }
-
-
 /* main */
 int main(int argc, char *argv[])
 {
@@ -352,17 +373,17 @@ int main(int argc, char *argv[])
     // {
     //     return 0;
     // }
-    cout << "-------     Bootstraping start    ---------" << endl;
 
     /* Bootstraping... */
     if (!Bootstraping())
     {
         return 0;
     }
-
-    cout << "-------     daemon start    ---------" << endl;
     /* daemon Thread start */
-    daemonThread();
+    daemonThreadStart();
 
+    startThread();
+
+    daemonThreadShutdown();
     return 0;
 }

@@ -48,11 +48,16 @@ App::App(int* signal_status, string con_setting_str, string type, string scope, 
 
         this->type = type;
         this->scope = scope;
+
+        this->isAppRunning = true;
         /* set Global values*/
+        cout << "setGlobalValue started!!!"  << endl;
         setGlobalValue(con_setting_str);
+        cout << "setGlobalValue finished!!!"  << endl;
         /* set redis*/
-        thread th(&App::redisMan, this);
-        th.detach();
+
+        th_redisMan = thread(&App::redisMan, this);
+        th_redisMan.detach();
     }
     catch (const Error &e)
     {
@@ -64,16 +69,29 @@ App::App(int* signal_status, string con_setting_str, string type, string scope, 
 App::~App()
 {
     cout << "~app ()  called!" << endl;
+    isAppRunning = false;
+    if(type == "HITB")
+    {
+        hitb->~HITB();
+    }
+    else if(type == "CBPR")
+    {
+        cbpr->~CBPR();
+    }
 }
 
 void App::redisMan()
 {
+    cout << "=========   redisMan thread started   ======== :  " <<  endl;
     try
     {
         auto redis = Redis(redisURL);
-        
+
+    cout << "=========   redisMan redis created   ======== :  " <<  endl;
+
         // Create a Subscriber.
         auto sub = redis.subscriber();
+    cout << "=========   redisMan subscriber created   ======== :  " <<  endl;
 
         // Set callback functions.
         sub.on_message([this](string channel, string msg) {
@@ -120,7 +138,7 @@ void App::redisMan()
         sub.subscribe(redisConnectorChannel);
       
         // Consume messages in a loop.
-        while (true) {
+        while (isAppRunning) {
             try {
                 sub.consume();
 
@@ -130,10 +148,12 @@ void App::redisMan()
                 syslog(LOG_PERROR, "Redis subscribe error occur!");
             }
         }
+    cout << "=========   redisMan thread finished   ======== :  " <<  endl;
+
     }
     catch (const Error &e)
     {
-        cout << "\033[1;31mRedis error occur!\033[0m => " << e.what() << endl;
+        cout << "\033[1;31mRedis error occur!!!!\033[0m => " << e.what() << endl;
         syslog(LOG_PERROR, "Redis error occur!");
     }
 }
@@ -194,7 +214,7 @@ void App::setGlobalValue(string res)
     //     coin_included.push_back(e[i].GetString());
     // }
     redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
-    cout << "redis URL : "  << redisURL << endl;
+    // cout << "redis URL : "  << redisURL << endl;
     redisChannel = "cyphertrust_database_" + addressID;
 }
 
@@ -224,12 +244,12 @@ void App::run(bool StartOrStop)
         if(StartOrStop)
         {
 
-            cbpr = CBPR(coin_included, api_uri, api_key, secret, passcode, redisURL, addressID);
-            cbpr.run();
+            cbpr = new CBPR(coin_included, api_uri, api_key, secret, passcode, redisURL, addressID);
+            cbpr->run();
         }
         else
         {
-            cbpr.~CBPR();
+            cbpr->~CBPR();
         }
     }
     else if (type == "HITB")
@@ -240,13 +260,13 @@ void App::run(bool StartOrStop)
             
         if(StartOrStop)
         {
-            cout << "HITB init : " << endl;
-            hitb = HITB(coin_included, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
-            hitb.run();
+            cout << "-----  HITB init in app.cpp:    ------" << endl;
+            hitb = new HITB(coin_included, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
+            hitb->run();
         }
         else
         {
-            hitb.~HITB();
+            hitb->~HITB();
         }
     }
     else if (type == "HUOB")

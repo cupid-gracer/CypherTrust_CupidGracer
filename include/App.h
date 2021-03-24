@@ -7,6 +7,7 @@
 #include "API.h"
 #include "Util.h"
 #include "exchange/HITB/HITB.h"
+#include <thread>
 
 using namespace std;
 
@@ -24,8 +25,10 @@ public:
     Util util;
     int* signal_status;
 
-    HITB hitb;
-    CBPR cbpr;
+    HITB* hitb;
+    CBPR* cbpr;
+
+    thread th_redisMan;
     /* Variable Declare */
     // bootstrap variables
     string  redisConnectorChannel,
@@ -47,7 +50,8 @@ public:
             scope,
             redisChannel;
     int redisPort, logPort;
-    bool walletEnabled;
+    bool    walletEnabled,
+            isAppRunning;
     vector<string> coin_included;
     string type;
     void auth(string user, string password, string type);

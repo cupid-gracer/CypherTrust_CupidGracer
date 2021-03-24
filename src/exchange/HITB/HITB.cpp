@@ -54,9 +54,6 @@ HITB::HITB( vector<string> coin_included, string api_key, string secret_key, str
 	api.redisConnectorChannel = redisConnectorChannel;
 	myCoinList = coin_included;
 
-	thread th(&HITB::StartStopWebsock, this);
-    th.detach();
-	
 }
 
 
@@ -154,19 +151,21 @@ void HITB::websock()
 		string basesymbol = "ETH";
 		string quotesymbol = "BTC";
 		wssURL = "wss://api.hitbtc.com/api/2/ws";
-		sock = HITBWebsock(basesymbol, quotesymbol, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
+		cout << "HITB 111 " << endl;
+		sock = new HITBWebsock(basesymbol, quotesymbol, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
+		cout << "HITB 222 " << endl;
 
-		sock.Connect();
+		sock->Connect();
 		cout << "web socket connected !" << endl;
 
-		this_thread::sleep_for(chrono::seconds(2));
-		int i = 0;
-		while (1)
-		{
-			if (i++ > 10)
-				break;
-			this_thread::sleep_for(chrono::seconds(3));
-		}
+		// this_thread::sleep_for(chrono::seconds(2));
+		// int i = 0;
+		// while (1)
+		// {
+		// 	if (i++ > 10)
+		// 		break;
+		// 	this_thread::sleep_for(chrono::seconds(3));
+		// }
 		
 	}
 	catch (exception e)
@@ -176,11 +175,6 @@ void HITB::websock()
 }
 
 
-void HITB::StartStopWebsock()
-{
-	
-}
-
 HITB::HITB()
 {
 }
@@ -189,5 +183,5 @@ HITB::HITB()
 HITB::~HITB()
 {
 	cout << "~HITB() called  !!!!!!!!!!" << endl;
-	sock.Disconnect();
+	sock->~HITBWebsock();
 }
