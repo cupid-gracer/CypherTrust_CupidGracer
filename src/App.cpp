@@ -2,6 +2,7 @@
 #include "API.h"
 #include "App.h"
 #include <vector>
+#include <algorithm>
 #include <iostream>
 #include "curl/curl.h"
 #include <sw/redis++/redis++.h>
@@ -85,6 +86,7 @@ void App::redisMan()
     cout << "=========   redisMan thread started   ======== :  " <<  endl;
     try
     {
+        isPingReceived = false;
         auto redis = Redis(redisURL);
 
     cout << "=========   redisMan redis created   ======== :  " <<  endl;
@@ -98,12 +100,8 @@ void App::redisMan()
             try{
 
                 cout << msg << endl;
-                auto redis = Redis(redisURL);
 
                 Document d;
-                Document d_pong;
-                rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
-                d_pong.SetObject();
                 
                 ParseResult result = d.Parse(msg.c_str());
                 if (!result)
@@ -113,21 +111,12 @@ void App::redisMan()
                 }
                 if(!d.HasMember("type")) return;
                 string type = d["type"].GetString();
-                if(type == "pong") return;
+                if(type != "ping") return;
+
+                isPingReceived = true;
                 long seq = d["seq"].GetUint64();
+                pong(seq);
 
-                d_pong.AddMember("type", "pong", allocator);
-                d_pong.AddMember("object", "connector", allocator);
-                d_pong.AddMember("address", Value().SetString(StringRef(addressID.c_str())), allocator);
-                d_pong.AddMember("status", "online", allocator);
-                d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
-                d_pong.AddMember("seq", seq, allocator);
-                d_pong.AddMember("latency", NULL, allocator);
-
-                StringBuffer sb;
-                Writer<StringBuffer> w(sb);
-                d_pong.Accept(w);
-                redis.publish(redisConnectorChannel, sb.GetString());
             }catch(exception e){
                 cout << "subscribe error occur :" << e.what() << endl;
             }
@@ -137,6 +126,22 @@ void App::redisMan()
 
         sub.subscribe(redisConnectorChannel);
       
+        this_thread::sleep_for(chrono::seconds(10));
+        if(!isPingReceived)
+        {
+            if(long seq = api.ping(addressID) == 0)
+            {
+
+                this->~App();
+                api.del_address(addressID);
+            }
+            else
+            {
+                isPingReceived = true;
+                pong(seq);
+            }
+        }
+
         // Consume messages in a loop.
         while (isAppRunning) {
             try {
@@ -169,6 +174,8 @@ void App::setGlobalValue(string res)
     util.split(st, '"', st_array);
     addressID = st_array[2];
 
+    cout << "addressID  "  << addressID  << endl;
+
     string pre_channel = "cyphertrust_database_";
 
     Document d;
@@ -185,37 +192,59 @@ void App::setGlobalValue(string res)
     redisOrderBookChannel = pre_channel + val_connector["channel"]["orderbook"].GetString();
     
 
-    // walletName      = val_connector["wallet"]["walletName"].GetString();
+    walletName      = val_connector["wallet"]["walletName"].GetString();
     // walletEnabled   = val_connector["wallet"]["walletEnabled"].GetBool();
-    // exchangeSecret  = val_connector["wallet"]["exchangeSecret"].GetString();
+    exchangeSecret  = val_connector["wallet"]["exchangeSecret"].GetString();
     // exchangePassword = val_connector["wallet"]["exchangePassword"].GetString();
-    // exchangeKey     = val_connector["wallet"]["exchangeKey"].GetString();
+    exchangeKey     = val_connector["wallet"]["exchangeKey"].GetString();
     exchangeApiUrl  = val_connector["wallet"]["exchangeApiUrl"].GetString();
     exchangeWsUrl   = val_connector["wallet"]["exchangeWsUrl"].GetString();
     // exchangeRedisOrderChannel = val_connector["wallet"]["exchangeRedisOrderChannel"].GetString();
     // portfolioName   = val_connector["wallet"]["portfolioName"].GetString();
 
     
-    walletName = "Coinbase Pro Sandbox Dev";
-    walletEnabled = true;
-    exchangeSecret = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
-    exchangePassword = "k7on2nlkl1s";
-    exchangeKey = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
-    exchangeApiUrl = "api.hitbtc.com/api/2";
-    exchangeWsUrl = "ws-feed.pro.coinbase.com";
-    exchangeRedisOrderChannel = "orders.cb.aldenburgh";
-    portfolioName = "Aldenburgh";
+    // walletName = "Coinbase Pro Sandbox Dev";
+    // walletEnabled = true;
+    // exchangeSecret = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
+    // exchangePassword = "k7on2nlkl1s";
+    // exchangeKey = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
+    // exchangeApiUrl = "api.hitbtc.com/api/2";
+    // exchangeWsUrl = "ws-feed.pro.coinbase.com";
+    // exchangeRedisOrderChannel = "orders.cb.aldenburgh";
+    // portfolioName = "Aldenburgh";
 
-    string coins = "ACU,ETH,ARDR,BTC,BTCZ,LTC,UFR,LNK,NXT,SHND,DOGE,SMART,USDT,CLO,ELLA,XSH,BCN,ZEUS,RSCT,PGC,PIRL,ORE,BCHA,EAG,IGNIS,FLG,ESH,NUKO,MSR,STAK,MFC,ONION,GBX,SLRM,REAK,DERO,B2B,BTCL,SPK,ETC,TENT,BLTG,RUPX,BHD,TSS,WAVES,ETG,BEET,FERMA,BITG,ZEL,BBK,DATO,ABS,AKA,DIC,BTCN,DASH,LCC,VIT,CROAT,TRX,XVG,SEM,ISC,NCP,BLAST,BCA,C2C,NEXO,EPLUS,RTH,BENZ,ACTN,ZEC,ELY,EIB,ATH,ETHO,PLTS,NILU,ZEN,TLR,MINTME,NANJ,BRF,SKB,DOW,THRN,ICR,EUNO,BTRL,BBR,QURO,GPKR,ITL,MNP,DVS,XTW,CDM,XSM,GPYX,DSC,MASH,BCI,ESBC,ADK,BEVERAGE,XRP,FA,XCASH,ATCC,BLOC,SIGN,XBI,XGK,MBC,SICC,D4RK,SIN,BYC,BAK,VRSC,CCX,DAPS,sBTC,TTP,LUNES,SCRIV,HTA,BZX,FREE,BDX,OHC,IZE,XNB,EGEM,X42,EthID,GIT,ILC,ZUM,CLM,TUP,HELP,DOGEC,BUL,BLE,HLIX,TUSD,VDL,TOC,BGX,INVC,AIB,PENG,DASHG,VESTX,JOOS,BHIG,VEST,QAC,OWC,ORM,ABET,ABST,PNY,CUT,OCUL,GVC,ELD,LTFG,SPRKL,ENJ,MNC,MAR,HBX,VJC,EUM,ANT,FUSION,REEC,RC20,SVR,OWO,CLOAK,VEIL,OBX,AER,PSD,CSC,ZCOR,PRKL,TSF,BITC,EXO,BCEO,CLASSY,BTH,ACRYL,BNY,BST,WEC,TELE,BZE,xEUR,EUR,ANON,GMCC,TVT,XLM,ZNN,HEDG,TEO,LOT,VRA,LONG,AMR,REV,AZT,SYO,XAC,EXOR,IDC,VITAE,BITSW,BURST,DYN,SEQ,SBE,SFX,ZANO,SINGH,BTNT,GPS,WCC,BNB,BCNA,CXC,PART,VTX,SWACE,NBX,DQI,OK,DGTX,DAB,COVAL,ARDX,GFG,N8V,VOLTZ,AGNT,UPX,ECR,AUDAX,XBG,ION,ECA,VRAB,PBC,JSC,BC,HTML,CBUCKS,PLF,RNDR,SURE,USDA,YFX,DSLA,CDEX,LST,ASY,DIVI,NYC,KICK,HMR,LMCH,DGB,WABI,CHBT,XDC,JUP,OCEAN,HYD,CRT,CSPN,STREAM,STP,HALO,INNBC,DMST,TNC,STS,XXA,CPTL,ZCL,CRS,DEB,GHOST,ZPAE,FLS,GIG,COMP,XRT,BAL,HIVE,XTZ,EOS,VLT,GET,BTX,ICH,IDX,PHNX,EVC,SRK,SFR,AKRO,NEC,GNO,TKN,MTA,MARS,TAN,CRDT,DRS,PLEX,OPM,ETHV,LINK,BAND,RDBX,SCC,USDC,CEEK,UMA,NOVO,UNI,WBTC,CR8,PAYT,DAI,SWFL,XZT,SNL,XCUR,RKN,NLG,YOLK,VBIT,BNZ,DOOS,EDC,DESH,JNTR,BLURT,MPH,S4F,DGW,CHESS,DXF,UCOIN,SMB,CRBN,DOT,WIFI,SIC,LOG";
-    util.split(coins, ',', coin_included);
-    // const Value &e = c[0]["market"]["included"];
-    // for (int i = 0; i < e.Size(); i++)
-    // {
-    //     coin_included.push_back(e[i].GetString());
-    // }
+    const Value &e = val_connector["market"]["full"];
+    for (int i = 0; i < e.Size(); i++)
+    {
+        string symbol = e[i].GetString();
+        transform(symbol.begin(), symbol.end(), symbol.begin(), ::toupper);
+        symbols.push_back(symbol);
+    }
     redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
     // cout << "redis URL : "  << redisURL << endl;
     redisChannel = "cyphertrust_database_" + addressID;
+}
+
+
+void App::pong(long seq)
+{
+    auto redis = Redis(redisURL);
+    Document d_pong;
+    rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
+    d_pong.SetObject();
+
+    d_pong.AddMember("type", "pong", allocator);
+    d_pong.AddMember("object", "connector", allocator);
+    d_pong.AddMember("address", Value().SetString(StringRef(addressID.c_str())), allocator);
+    d_pong.AddMember("status", "online", allocator);
+    d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
+    d_pong.AddMember("seq", seq, allocator);
+    d_pong.AddMember("latency", NULL, allocator);
+
+    StringBuffer sb;
+    Writer<StringBuffer> w(sb);
+    d_pong.Accept(w);
+    redis.publish(redisConnectorChannel, sb.GetString());
 }
 
 void App::run(bool StartOrStop)
@@ -238,36 +267,23 @@ void App::run(bool StartOrStop)
     {
         string api_uri = "api-public.sandbox.pro.coinbase.com";
         string api_key = "11dfbdd50299d30a03ea46736da2cb73";
-        string secret = "Aw4LtSL8CPTciYXVqV7s1ZZyiFdWgIu0nDeHWuGqK5LvUgAi1ACPPyiJY4uN65+7DgF9D0QzAVGFp4FaVHmWxw==";
+        string secret_key = exchangeSecret;
+               secret_key = "Aw4LtSL8CPTciYXVqV7s1ZZyiFdWgIu0nDeHWuGqK5LvUgAi1ACPPyiJY4uN65+7DgF9D0QzAVGFp4FaVHmWxw==";
         string passcode = "k7on2nlkl1s";
         
-        if(StartOrStop)
-        {
-
-            cbpr = new CBPR(coin_included, api_uri, api_key, secret, passcode, redisURL, addressID);
-            cbpr->run();
-        }
-        else
-        {
-            cbpr->~CBPR();
-        }
+        cout << "-----  CBPR init in app.cpp:    ------" << endl;
+        cbpr = new CBPR(api, symbols, api_uri, api_key, secret_key, passcode, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
+        cbpr->run();
     }
     else if (type == "HITB")
     {
-            string api_key = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
-            string secret_key = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
-            string uri = "api.hitbtc.com/api/2";
-            
-        if(StartOrStop)
-        {
-            cout << "-----  HITB init in app.cpp:    ------" << endl;
-            hitb = new HITB(coin_included, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
-            hitb->run();
-        }
-        else
-        {
-            hitb->~HITB();
-        }
+        string api_key = exchangeKey;
+        string secret_key = exchangeSecret;
+        string uri = exchangeApiUrl;
+        
+        cout << "-----  HITB init in app.cpp:    ------" << endl;
+        hitb = new HITB(api, symbols, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
+        hitb->run();
     }
     else if (type == "HUOB")
     {
@@ -288,7 +304,7 @@ void App::run(bool StartOrStop)
     {
         string uri = "api3.stex.com";
         string access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiYjE5ZmJmNzUwNTg1ZjgyNzgxN2M4NTMxNzc5ZDY1ODIyNGVhYmVkZTExNjc1NWQ1MTc5ODFmYTQxMjZkZTJiNDRhYjZkMmNlNDUwZGQ1ZjkiLCJpYXQiOjE2MTIyNTE0OTAsIm5iZiI6MTYxMjI1MTQ5MCwiZXhwIjoxNjQzNzg3NDkwLCJzdWIiOiI0MjcyODAiLCJzY29wZXMiOlsicHJvZmlsZSIsInRyYWRlIiwid2l0aGRyYXdhbCIsInJlcG9ydHMiLCJwdXNoIiwic2V0dGluZ3MiXX0.SdzP9kwOb73vEyVGr7hcnF39eWTSbTLjr5Bv1UrwUCfP5sG-_haaK-_wF_OPt2fOhMbSi_JQ9y50LCefBX-TsRzcX38P0O4eoRqFhQpTNQwSDJ4VISpdL4MvMybDXaHTsDwgSvHRS-f8Ji3JjfO2aCqEmFOkKM-s4Cc5AaiIUM7-UVvGGv_5hkmQsr0Q1ssO21v7qGa1nHagn4CJsSBVjEK6yKls0IaargV8MbkMVgRErbcVyPdxi6bBa_eOh2sqGEyh_ghdE60hDjapaYqT0PA7WLNCULdt23q65bUEIgo3yLehvpM4kUdGMwEadB3d4FZj5Dcgu1Kc7R7InrpWGA4rd3sWLWssx7o_oT1UgD0q_G_AlAB70foBSYa77W9W64ZOge0Gqnq-gvkBRj33V0Nd3eJ6-JbWXhUEguf6xcxqmnVE_sdTAtEw-BV--pbAK14dgcs83MUREIaVhKqgp-AkIYtgU3-nZf0Rip2Q7wfkBYhvZaD2CTcBkKJjL8oxIry1kIGaV2R3mTuB4b4UhI_KsATbTnGem7jEQXU3U6R2W98hoAaqZazBc44hgtJ7rSs4s6LZJ4CZ8j6wT260-gK-ahwMpO1d03GMx9LlIC5aqXIgOB5kIf1_63xMOu5NS0QnuHpJAscpAHZEwTCBkPwM4gjQFSnVtOPnsn68m_U";
-        STEX stex = STEX(coin_included, access_token, uri, redisURL, addressID);
+        STEX stex = STEX(symbols, access_token, uri, redisURL, addressID);
         stex.run();
     }
 }

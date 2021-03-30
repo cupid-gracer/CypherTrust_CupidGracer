@@ -36,8 +36,9 @@ public:
 
     void setStartTimestamp();
     void setFinishTimestamp();
-    void publishLatency(string redisURL, string redisHeartbeatChannel, string addressID, int size_req, int size_res);
-
+    void publishLatency(string redisURL, string redisHeartbeatChannel, string object, string addressID, string status, long ts, long latency);
+    int findIndex(vector<string> V, string s);
+    bool isValueInVector(vector<string> V, string s);
 };
 
 #endif // UTIL_H

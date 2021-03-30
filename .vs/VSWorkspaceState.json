@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\include",
+    "\\src",
+    "\\src\\exchange",
+    "\\src\\exchange\\HITB"
+  ],
+  "SelectedNode": "\\src\\exchange\\HITB\\Websock.cpp",
+  "PreviewInSolutionExplorer": false
+}

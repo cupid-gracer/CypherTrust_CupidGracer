@@ -18,26 +18,31 @@ class HITB
 {
 public:
     HITB();
-    HITB( vector<string> coin_included, string api_key, string secret_key, string uri, string wssURL, string redisURL, string connectorid, string redisConnectorChannel, string redisOrderBookChannel);
+    HITB(API app_api, vector<string> symbols, string api_key, string secret_key, string uri, string wssURL, string redisURL, string connectorid, string redisConnectorChannel, string redisOrderBookChannel);
     ~HITB();
     /* Declare Variables */
-    vector<string> myCoinList;
+    vector<string> CypherTrust_symbols;
+    vector<string> HITB_symbols;
+    vector<string> Offline_symbols;
     string  redisURL,
             wssURL,
             connectorID,
             redisConnectorChannel,
             redisOrderBookChannel;
 
+    API app_api;
     HITBAPI api;
     HITBWebsock* sock;
-
+    Util util;
     void run();
 
+    thread th;
     Document currency_data_format();
 
     void websock();
     void StartStopWebsock(); // to control(start or stop) for websocket 
-
+    void exchangeMonitoring();
+    void marketMonitoring();
 
 };
 

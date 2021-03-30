@@ -18,62 +18,124 @@ static uint64_t seq = 0;
 void CBPRWebsock::message_handler(web::websockets::client::websocket_incoming_message msg)
 {
     try{
-    auto redis = Redis(redisURL);
-    string input = msg.extract_string().get();
-    Document d;
-    d.Parse(input.c_str());
-    string type = d["type"].GetString();
-    if (type == "snapshot")
-    {
-        return;
-        const Value &bids = d["bids"];
-        const Value &asks = d["asks"];
-        for (SizeType i = 0; i < bids.Size(); i++)
+        auto redis = Redis(redisURL);
+        string input = msg.extract_string().get();
+        Document d;
+        ParseResult result = d.Parse(input.c_str());
+        if (!result)
         {
-            buy_prices.push_back(stod(bids[i][0].GetString()));
+            std::cerr << "JSON parse error: " << input << endl;
+            return;
         }
-        for (SizeType i = 0; i < asks.Size(); i++)
+
+        string type = d["type"].GetString();
+        if (type == "snapshot")
         {
-            sell_prices.push_back(stod(asks[i][0].GetString()));
+            return;
+            const Value &bids = d["bids"];
+            const Value &asks = d["asks"];
+            for (SizeType i = 0; i < bids.Size(); i++)
+            {
+                buy_prices.push_back(stod(bids[i][0].GetString()));
+            }
+            for (SizeType i = 0; i < asks.Size(); i++)
+            {
+                sell_prices.push_back(stod(asks[i][0].GetString()));
+            }
+        }
+        else if (type == "l2update")
+        {
+            long timestamp = util.ConvertNanoseconds(d["time"].GetString());
+            string market = d["product_id"].GetString();
+            string exchange = "cbpr";
+            cout << "-------------------  " << seq << endl << market << endl;
+
+            const Value &changes = d["changes"];
+
+            assert(changes.IsArray());
+            for (SizeType i = 0; i < changes.Size(); i++)
+            {
+                assert(changes[i].IsArray());
+                string side = changes[i][0].GetString();
+                string price = changes[i][1].GetString();
+                string volume = changes[i][2].GetString();
+
+                cout << "side : " << side  << endl;
+
+                if(side == "buy")
+                {
+                    side = "ask";
+                }
+                else side = "bid";
+
+                Document doc_bid;
+                rapidjson::Document::AllocatorType &allocator = doc_bid.GetAllocator();
+                doc_bid.SetObject();
+                doc_bid.AddMember("connector", Value().SetString(StringRef(ConnectorID.c_str())), allocator);
+                doc_bid.AddMember("exchange", Value().SetString(StringRef(exchange.c_str())), allocator);
+                doc_bid.AddMember("ts", timestamp, allocator);
+                doc_bid.AddMember("seq", seq++, allocator);
+                doc_bid.AddMember("type", Value().SetString(StringRef(side.c_str())), allocator);
+                doc_bid.AddMember("price", Value().SetString(StringRef(price.c_str())), allocator);
+                doc_bid.AddMember("volume", Value().SetString(StringRef(volume.c_str())), allocator);
+                doc_bid.AddMember("market", Value().SetString(StringRef(market.c_str())), allocator);
+
+                StringBuffer sb;
+                Writer<StringBuffer> w(sb);
+                doc_bid.Accept(w);
+                redis.publish(redisOrderBookChannel, sb.GetString());
+            }
+        }
+        else if(type == "status")
+        {
+            Value& products = d["products"];
+            for (string symbol : Product_ids)
+            {
+                bool f = false;
+                for (int i = 0; i < products.Size(); i++)
+                {
+                    if(symbol == products[i]["id"].GetString())
+                    {
+                        f = true;
+                        string status = products[i]["status"].GetString();
+                        if(status == "offline")
+                        {
+                            if(!util.isValueInVector(Offline_symbols, symbol))
+                            {
+                                string object = "market." + symbol;
+                                Offline_symbols.push_back(symbol);
+                                util.publishLatency(redisURL, redisConnectorChannel, object, ConnectorID, status, util.GetNowTimestamp(), 0);
+                            }
+                        }
+                        else if(status == "online")
+                        {
+                            if(util.isValueInVector(Offline_symbols, symbol))
+                            {
+                                string object = "market." + symbol;
+                                Offline_symbols.erase(remove(Offline_symbols.begin(), Offline_symbols.end(), symbol), Offline_symbols.end());
+                                util.publishLatency(redisURL, redisConnectorChannel, object, ConnectorID, status, util.GetNowTimestamp(), 0);
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                if(!f)
+                {
+                    if(!util.isValueInVector(Offline_symbols, symbol))
+                    {
+                        cout << "no symbol:  "  << symbol << endl;
+                        string object = "market." + symbol;
+                        Offline_symbols.push_back(symbol);
+                        util.publishLatency(redisURL, redisConnectorChannel, object, ConnectorID, "offline", util.GetNowTimestamp(), 0);
+                    }
+                }
+            }
         }
     }
-    else if (type == "l2update")
+    catch(exception e)
     {
-        long timestamp = util.ConvertNanoseconds(d["time"].GetString());
-        string market = d["product_id"].GetString();
-        string exchange = "cbpr";
-        cout << "-------------------  " << seq << endl << market << endl;
-
-        const Value &changes = d["changes"];
-
-        assert(changes.IsArray());
-        for (SizeType i = 0; i < changes.Size(); i++)
-        {
-            assert(changes[i].IsArray());
-            string price = changes[i][1].GetString();
-            string side = changes[i][0].GetString();
-            string volume = changes[i][2].GetString();
-
-            Document doc_bid;
-            rapidjson::Document::AllocatorType &allocator = doc_bid.GetAllocator();
-            doc_bid.SetObject();
-            doc_bid.AddMember("connector", Value().SetString(StringRef(ConnectorID.c_str())), allocator);
-            doc_bid.AddMember("exchange", Value().SetString(StringRef(exchange.c_str())), allocator);
-            doc_bid.AddMember("ts", timestamp, allocator);
-            doc_bid.AddMember("seq", seq++, allocator);
-            doc_bid.AddMember("type", Value().SetString(StringRef(side.c_str())), allocator);
-            doc_bid.AddMember("price", Value().SetString(StringRef(price.c_str())), allocator);
-            doc_bid.AddMember("volume", Value().SetString(StringRef(volume.c_str())), allocator);
-            doc_bid.AddMember("market", Value().SetString(StringRef(market.c_str())), allocator);
-
-            StringBuffer sb;
-            Writer<StringBuffer> w(sb);
-            doc_bid.Accept(w);
-            redis.lpush(to_string(timestamp), sb.GetString());
-        }
-    }}catch(exception e)
-    {
-        cout << "CBPR error occur: " << e.what();
+        cout << "CBPR websocket  error occur: " << e.what();
     }
 }
 
@@ -105,36 +167,15 @@ string CBPRWebsock::subscribe(bool sub)
     StringBuffer strbuf;
     Writer<StringBuffer> writer(strbuf);
     d.Accept(writer);
+
     return strbuf.GetString();
 }
 
-double CBPRWebsock::Best_Buy_Price()
-{
-    shared_lock<shared_mutex> lock(buy_mut);
-    auto biggest = max_element(begin(buy_prices), end(buy_prices));
-    return *biggest;
-}
-
-double CBPRWebsock::Best_Sell_Price()
-{
-    shared_lock<shared_mutex> lock(sell_mut);
-    auto smallest = min_element(begin(sell_prices), end(sell_prices));
-    return *smallest;
-}
-
-double CBPRWebsock::MidMarket_Price()
-{
-    return (Best_Buy_Price() + Best_Sell_Price()) / 2;
-}
 
 void CBPRWebsock::Connect()
 {
     client.set_message_handler([this](web::websockets::client::websocket_incoming_message msg) { message_handler(msg); });
-#ifdef _WIN32
-    client.connect(web::uri(utility::conversions::to_string_t(Uri))).wait();
-#else
-    client.connect(Uri).wait();
-#endif
+    client.connect(wssURL).wait();
     send_message(subscribe(true));
     is_connected = true;
 }
@@ -146,16 +187,20 @@ void CBPRWebsock::Disconnect()
     is_connected = false;
 }
 
-CBPRWebsock::CBPRWebsock(vector<string> channels, vector<string> product_ids, string uri, string redisurl, string connectorID)
+CBPRWebsock::CBPRWebsock(vector<string> channels, vector<string> product_ids, string wssURL, string redisurl, string connectorID, string redisOrderBookChannel, string redisConnectorChannel)
 {
 
-    Channels = channels;
-    Product_ids = product_ids;
-    Uri = uri;
-    ConnectorID = connectorID;
-    redisURL = redisurl;
     util = Util();
+    this->Product_ids = product_ids;
+    this->Channels = channels;
+    this->Product_ids = product_ids;
+    this->wssURL = wssURL;
+    this->ConnectorID = connectorID;
+    this->redisURL = redisurl;
+    this->redisConnectorChannel = redisConnectorChannel;
+    this->redisOrderBookChannel = redisOrderBookChannel;
 }
+
 CBPRWebsock::~CBPRWebsock()
 {
     if (is_connected)

@@ -26,8 +26,9 @@ public:
 
     string auth();
     bool del_address(string address_id);
-    void ping(string address_id);
-    
+    long ping(string address_id);
+    void StartSession(string address_id, string market);
+    void StopSession(string address_id, string market);
 
 
 };

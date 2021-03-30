@@ -138,8 +138,8 @@ void daemonize(const char *rundir, const char *pidfile)
     sigaction(SIGCONT, &newSigAction, NULL); /* Continue the order book streaming */
     sigaction(SIGSTOP, &newSigAction, NULL); /* Pause the order book streaming  */
 
-    cout << "daemonize called" << endl;
-    return;
+    // cout << "daemonize called" << endl;
+    // return; 
     /* Fork*/
     pid = fork();
 
@@ -252,7 +252,7 @@ bool getConsoleValue(int argc, char *argv[])
 /* Bootstrap Processing */
 bool Bootstraping()
 {
-    cout << "----   bootstrapping started  -----------"  << endl;
+    cout << "---------   bootstrapping   -----------"  << endl;
     exchange_type = "HITB";
 
     auth_api.url = "https://hub.cyphertrust.eu/v1/connector";
@@ -289,7 +289,7 @@ bool Bootstraping()
 
     
 
-    cout << "----   bootstrapping finished  -----------"  << endl;
+    // cout << "----   bootstrapping finished  -----------"  << endl;
 
     return true;
 }
@@ -297,9 +297,9 @@ bool Bootstraping()
 void releaseAddress()
 {
     // delete address id 
-    cout << "----   releaseAddress started  -----------"  << endl;
+    // cout << "----   releaseAddress started  -----------"  << endl;
     auth_api.del_address(address_id);
-    cout << "----   releaseAddress finished  -----------"  << endl;
+    // cout << "----   releaseAddress finished  -----------"  << endl;
 }
 
 void startThread()
@@ -315,21 +315,21 @@ void stopThread()
 {
     cout << "----   stopThread start  -----------"  << endl;
     // app.run(false);
-    cout << "----   app.~App(); start  -----------"  << endl;
+    // cout << "----   app.~App(); start  -----------"  << endl;
     app->~App();
-    cout << "----   app.~App(); end  -----------"  << endl;
+    // cout << "----   app.~App(); end  -----------"  << endl;
     cout << "----   stopThread end  -----------"  << endl;
 }
 
 void daemonThreadStart()
 {
-    cout << "-------     daemon start    ---------" << endl;
+    cout << "---------   daemon start     ---------" << endl;
 
     // /* Logging */
     setlogmask(LOG_UPTO(LOG_INFO));
     openlog(DAEMON_NAME, LOG_CONS | LOG_PERROR, LOG_USER);
 
-    syslog(LOG_INFO, "CrypherTrust Daemon starting up!");
+    // syslog(LOG_INFO, "CrypherTrust Daemon starting up!");
 
     /* Deamonize */
     // const char* daemonpid = "/var/run/srv_test.pid";

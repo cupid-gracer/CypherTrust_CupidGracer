@@ -53,8 +53,11 @@ string CBPRAPI::Call(string method, bool authed, string path, string body)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
     res = curl_easy_perform(curl);
     /* Check for errors */
-    if (res != CURLE_OK)
+    if (res != CURLE_OK){
       std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+      std::cerr << "curl_easy_perform() url error: " << uri + path << std::endl;
+      
+    }
     /* always cleanup */
     curl_easy_cleanup(curl);
     /* free the custom headers */
@@ -169,32 +172,28 @@ string CBPRAPI::Place_Limit_Order(string side, string price, string size)
 string CBPRAPI::Get_List_Accounts()
 {
   string res = Call("GET", true, "/accounts/", "");
-  std::cout << res;
-  return "";
+  return res;
 }
 
 //Get an Account
 string CBPRAPI::Get_Account(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id, "");
-  std::cout << res;
-  return "";
+  return res;
 }
 
 //Get Account History
 string CBPRAPI::Get_Account_History(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
-  std::cout << res;
-  return "";
+  return res;
 }
 
 //Get Holds
 string CBPRAPI::Get_Holds(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
-  std::cout << res;
-  return "";
+  return res;
 }
 
 // Place a New Order
@@ -304,7 +303,6 @@ string CBPRAPI::Cancel_Order(string oid, bool isOid)
   else
     url = "/orders/client:" + oid;
   string res = Call("DELETE", true, url, "");
-  std::cout << res;
   Document d;
   d.Parse(res.c_str());
   if (d.HasMember("message"))
@@ -312,15 +310,14 @@ string CBPRAPI::Cancel_Order(string oid, bool isOid)
     assert(d["message"].IsString());
     std::cout << "(Cancel_Order) Message: " << d["message"].GetString() << std::endl;
   }
-  return "";
+  return res;
 }
 
 // Cancel All Orders
 string CBPRAPI::Cancel_All_Order()
 {
   string res = Call("DELETE", true, "/orders", "");
-  std::cout << res;
-  return "";
+  return res;
 }
 
 //List Orders
@@ -346,7 +343,7 @@ string CBPRAPI::List_Orders(string product_id, bool isOpen, bool isPending, bool
 
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get an Order
@@ -368,7 +365,7 @@ string CBPRAPI::Get_Order(string oid, bool isOid)
     assert(d["message"].IsString());
     std::cout << "(Get_Order) Message: " << d["message"].GetString() << std::endl;
   }
-  return "";
+  return res;
 }
 
 //Products
@@ -379,7 +376,7 @@ string CBPRAPI::Get_Products()
 
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Single Product
@@ -388,7 +385,7 @@ string CBPRAPI::Get_Single_Product()
   string url = "/products/" + product_id;
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Product Order Book
@@ -397,7 +394,7 @@ string CBPRAPI::Get_Product_Order_Book()
   string url = "/products/" + product_id + "/book";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Product Ticker
@@ -406,7 +403,7 @@ string CBPRAPI::Get_Product_Ticker()
   string url = "/products/" + product_id + "/ticker";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Trades
@@ -415,7 +412,7 @@ string CBPRAPI::Get_Trades()
   string url = "/products/" + product_id + "/trades";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Historic Rates
@@ -424,7 +421,7 @@ string CBPRAPI::Get_Historic_Rates()
   string url = "/products/" + product_id + "/candles";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get 24hr Stats
@@ -433,7 +430,7 @@ string CBPRAPI::Get_24hr_Stats()
   string url = "/products/" + product_id + "/stats";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Currencies
@@ -442,7 +439,7 @@ string CBPRAPI::Get_Currencies()
   string url = "/currencies/";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get Currency
@@ -451,7 +448,7 @@ string CBPRAPI::Get_Currency(string cid)
   string url = "/currencies/" + cid;
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Time
@@ -461,7 +458,7 @@ string CBPRAPI::Get_Time()
   string url = "/time";
   string res = Call("GET", false, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Fills
@@ -477,7 +474,7 @@ std:: string CBPRAPI::List_Fills(string order_id, string product_id)
   }
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Payment Methods
@@ -487,7 +484,7 @@ string CBPRAPI::List_Payment_Methods()
   string url = "/payment-methods";
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Coinbase Accounts
@@ -497,7 +494,7 @@ string CBPRAPI::List_Coinbase_Accounts()
   string url = "/coinbase-accounts";
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Limits
@@ -507,7 +504,7 @@ string CBPRAPI::Get_Current_Exchange_Limits()
   string url = "/users/self/exchange-limits";
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Deposit
@@ -529,7 +526,7 @@ string CBPRAPI::List_Deposits(string profile_id, string before, string after, st
   }
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Single Deposit
@@ -538,7 +535,7 @@ string CBPRAPI::Single_Deposit(string transfer_id)
   string url = "/transfers/:" + transfer_id;
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Payment method
@@ -569,7 +566,7 @@ string CBPRAPI::Payment_Method_Deposit(string amount, string currency, string pa
   d.Accept(writer);
   string res = Call("POST", true, "/deposits/payment-method", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Coinbase Deposit
@@ -600,7 +597,7 @@ string CBPRAPI::Coinbase_Deposit(string amount, string currency, string coinbase
   d.Accept(writer);
   string res = Call("POST", true, "/deposits/coinbase-account", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Generate a Crypto Deposit Address
@@ -609,7 +606,7 @@ string CBPRAPI::Generate_Crypto_Deposit_Address(string coinbase_account_id)
 
   string res = Call("POST", true, "/coinbase-accounts/" + coinbase_account_id + "/addresses", "");
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Withdraw
@@ -631,7 +628,7 @@ string CBPRAPI::List_Withdrawals(string profile_id, string before, string after,
   }
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Single Withdrawal
@@ -640,7 +637,7 @@ string CBPRAPI::Single_Withdrawal(string transfer_id)
   string url = "/transfers/:" + transfer_id;
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Payment method
@@ -671,7 +668,7 @@ string CBPRAPI::Payment_Method_Withdraw(string amount, string currency, string p
   d.Accept(writer);
   string res = Call("POST", true, "/withdrawals/payment-method", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Coinbase Withdraw
@@ -702,7 +699,7 @@ string CBPRAPI::Coinbase_Withdraw(string amount, string currency, string coinbas
   d.Accept(writer);
   string res = Call("POST", true, "/withdrawals/coinbase-account", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Crytop Withdraw
@@ -748,7 +745,7 @@ string CBPRAPI::Crypto_Withdraw(string amount, string currency, string crypto_ad
   d.Accept(writer);
   string res = Call("POST", true, "/withdrawals/crypto", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Fee Estimate
@@ -757,7 +754,7 @@ string CBPRAPI::Fee_Estimate(string currency, string crypto_address)
   string url = "/withdrawals/fee-estimate?currency=" + currency + "&crypto_address" + crypto_address;
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Stablecoin Conversions
@@ -789,7 +786,7 @@ string CBPRAPI::Create_Conversion(string from, string to, string amount)
   d.Accept(writer);
   string res = Call("POST", true, "/conversions", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Fees
@@ -799,7 +796,7 @@ string CBPRAPI::Get_Current_Fees()
   string url = "/fees";
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Reports
@@ -851,7 +848,7 @@ string CBPRAPI::Create_new_report(string type, string start_date, string end_dat
   d.Accept(writer);
   string res = Call("POST", true, "/reports", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //Get report status
@@ -860,7 +857,7 @@ string CBPRAPI::Get_report_status(string report_id)
   string url = "/reports/:" + report_id;
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //List Profiles
@@ -869,7 +866,7 @@ string CBPRAPI::List_Profiles(string active)
   string url = "/profiles";
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Get a Profile
@@ -878,7 +875,7 @@ string CBPRAPI::Get_Profile(string profile_id)
   string url = "/profiles/" + profile_id;
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 //Create profile transfer
@@ -914,7 +911,7 @@ string CBPRAPI::Create_profile_transfer(string from, string to, string currency,
   d.Accept(writer);
   string res = Call("POST", true, "/profiles/transfer", strbuf.GetString());
   std::cout << res ;
-  return "";
+  return res;
 }
 
 //User Account
@@ -924,7 +921,7 @@ string CBPRAPI::Trailing_Volume()
   string url = "/users/self/trailing-volume";
   string res = Call("GET", true, url, "");
   std::cout << res << std::endl;
-  return "";
+  return res;
 }
 
 

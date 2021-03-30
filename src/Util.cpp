@@ -257,16 +257,17 @@ void Util::setFinishTimestamp()
     finishTimestamp = GetNowTimestamp();
 }
 
-void Util::publishLatency(string redisURL, string redisHeartbeatChannel, string addressID, int size_req, int size_res)
+void Util::publishLatency(string redisURL, string redisHeartbeatChannel, string object, string addressID, string status, long ts, long latency)
 {
     Document d;
     rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
     d.SetObject();
-    d.AddMember("connector", Value().SetString(StringRef(addressID.c_str())), allocator);
-    d.AddMember("ts_req", startTimestamp, allocator);
-    d.AddMember("size_req", size_req, allocator);
-    d.AddMember("ts_res", finishTimestamp, allocator);
-    d.AddMember("size_res", size_res, allocator);
+    d.AddMember("type", "heartbeat", allocator);
+    d.AddMember("object", Value().SetString(StringRef(object.c_str())), allocator);
+    d.AddMember("address", Value().SetString(StringRef(addressID.c_str())), allocator);
+    d.AddMember("status", Value().SetString(StringRef(status.c_str())), allocator);
+    d.AddMember("ts", ts, allocator);
+    d.AddMember("latency", latency, allocator);
 
     StringBuffer sb;
     Writer<StringBuffer> w(sb);
@@ -277,6 +278,19 @@ void Util::publishLatency(string redisURL, string redisHeartbeatChannel, string 
 }
 
 
+int Util::findIndex(vector<string> V, string s)
+{
+    return find(V.begin(), V.end(), s) - V.begin();
+}
+
+bool Util::isValueInVector(vector<string> V, string s)
+{
+    int nowIndex = find(V.begin(), V.end(), s) - V.begin();
+    if(nowIndex >= V.size())
+        return false;
+    else
+        return true;
+}
 
 Util::Util()
 {

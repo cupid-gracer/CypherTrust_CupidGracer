@@ -22,23 +22,24 @@ private:
 
   void message_handler(web::websockets::client::websocket_incoming_message msg);
   void send_message(string to_send);
-  void redisPublishOrder(Value &data, string type, string ts, uint64_t seq);
+  void redisPublishOrder(Value &data, string type, string ts, uint64_t seq, string market);
   void redisPublishStartOrStop(string type);
   void StopOrder(); // publish stop order through redis order channel
-  string subscribeOrderbook(bool sub);
-  int* signal_status;
+  int findIndex(string symbol);
+  string subscribeOrderbook(string symbol,bool sub);
   vector<double> prices;
   vector<double> sizes;
   // shared_timed_mutex price_mut, size_mut;
-  string BaseSymbol, QuoteSymbol, wssURL;
-  string RedisUri, ConnectorID;
+  vector<string> CypherTrust_symbols;
+  vector<string> HITB_symbols;
+  string RedisUri, ConnectorID, wssURL;
   string redisOrderBookChannel, redisConnectorChannel;
   bool is_connected = false;
 
 public:
 
   HITBWebsock();
-  HITBWebsock(string basesymbol, string quotesymbol, string wssURL, string connectorID, string redisUri, string redisOrderBookChannel, string redisConnectorChannel);
+  HITBWebsock(vector<string> cypherTrust_symbols, string wssURL, string connectorID, string redisUri, string redisOrderBookChannel, string redisConnectorChannel);
   ~HITBWebsock();
 
   double Best_Buy_Price();

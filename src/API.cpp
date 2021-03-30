@@ -31,7 +31,7 @@ static int DetectHttpError(string res)
   if(d.HasMember("error"))
   {
     string str_error = d["error"].GetString();
-    cout<< res << endl;
+    // cout<< res << endl;
 
     boost::erase_all(str_error, "x");
     int error_code = atoi(str_error.c_str());
@@ -156,7 +156,7 @@ bool API::del_address(string address_id)
   string res = Call("DELETE", false, "/address/" + address_id, "");
   Document d;
   d.Parse(res.c_str());
-  cout << res << endl;
+  // cout << res << endl;
   if(d.HasMember("address"))
   {
     return true;
@@ -165,15 +165,35 @@ bool API::del_address(string address_id)
 }
 
 
-void API::ping(string address_id)
+long API::ping(string address_id)
 {
   string res = Call("GET", false, "/heartbeat/" + address_id, "");
+  cout << "ping request res=>" << address_id << " -->  "  << res << endl;
   Document d;
-  d.Parse(res.c_str());
-  cout << res << endl;
+  ParseResult result = d.Parse(res.c_str());
+  if (!result)
+  {
+      std::cerr << "ping reqeust error: " << res << endl;
+      return 0;
+  }
+
+  if(!d.HasMember("seq")) return 0;
+  long seq = d["seq"].GetUint64();
+
+  return seq;
   // if(d.HasMember("address"))
   // {
   //   return true;
   // }
   // return false;
+}
+
+void API::StartSession(string address_id, string market)
+{
+  string res = Call("POST", true, "/stream/" + address_id + "/" + market, "");
+}
+
+void API::StopSession(string address_id, string market)
+{
+  string res = Call("DELETE", true, "/stream/" + address_id + "/" + market, "");
 }

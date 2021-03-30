@@ -51,8 +51,9 @@ public:
             redisChannel;
     int redisPort, logPort;
     bool    walletEnabled,
-            isAppRunning;
-    vector<string> coin_included;
+            isAppRunning,
+            isPingReceived;
+    vector<string> symbols;
     string type;
     void auth(string user, string password, string type);
 
@@ -61,6 +62,8 @@ public:
     void redisMan();
 
     void run(bool StartOrStop);
+
+    void pong(long seq);
 
 };
 

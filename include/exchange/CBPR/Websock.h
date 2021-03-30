@@ -18,26 +18,23 @@ private:
   void message_handler(web::websockets::client::websocket_incoming_message msg);
   void send_message(string to_send);
   string subscribe(bool sub);
-  std::vector<double> buy_prices;
-  std::vector<double> sell_prices;
-  std::shared_mutex buy_mut, sell_mut;
-  std::vector<string> Channels;
-  std::vector<string> Product_ids;
-  string Uri;
+  vector<double> buy_prices;
+  vector<double> sell_prices;
+  vector<string> Channels;
+  vector<string> Product_ids;
+  vector<string> Offline_symbols;
+  string wssURL;
   string redisURL;
   string ConnectorID;
   bool is_connected;
-
+  string redisOrderBookChannel, redisConnectorChannel;
   Util util;
 
 public:
-  double Best_Buy_Price();
-  double Best_Sell_Price();
-  double MidMarket_Price();
 
   void Connect();
   void Disconnect();
-  CBPRWebsock(vector<string> channels, vector<string> product_ids, string uri, string redisurl, string connectorID);
+  CBPRWebsock(vector<string> channels, vector<string> product_ids, string wssURL, string redisurl, string connectorID, string redisOrderBookChannel, string redisConnectorChannel);
   ~CBPRWebsock();
 };
 #endif // CBPRWEBSOCK_H
