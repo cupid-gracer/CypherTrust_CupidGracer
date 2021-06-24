@@ -8,7 +8,6 @@ Code repository for the CypherTrust's Connector component. These Connectors are 
 * stream the transformed orderbook data onto the Redis channel
 
 # Command
-*---------------    CypherTrust    ---------------
 rouy1po*dogh.HAWN
 143.110.157.226
 
