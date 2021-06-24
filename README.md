@@ -22,5 +22,6 @@ clear
 
 # API Document
 * https://app.gitbook.com/@cyphertrust-aldenburgh/s/cyphertrust-api/
-
-
+* https://app.gitbook.com/@cyphertrust-aldenburgh/s/cyphertrust-internal-api/
+# JIRA
+* https://cyphertrust.atlassian.net/secure/RapidBoard.jspa?rapidView=1&projectKey=CONNECTOR&selectedIssue=CONNECTOR-1
