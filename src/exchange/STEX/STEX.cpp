@@ -97,10 +97,6 @@ Document STEX::currency_data_format()
 
 void STEX::run()
 {
-	// vector<string> specific_coinList;
-	// AC ac = AC(specific_coinList);
-	// while(1)
-	// ac.Get_arbitrage_opportunity(currency_data_format());
 	cout << "Stex run" << endl;
 	int i = 0;
 	while (1)

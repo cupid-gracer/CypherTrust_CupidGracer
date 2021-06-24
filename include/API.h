@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include "Util.h"
 
 using namespace std;
 
@@ -17,18 +18,22 @@ private:
 public:
     API();
     ~API();
+    Util util;
+    
     string url;
     string token;
 
     string user;
     string key;
     string password;
+    string type;
 
     string auth();
     bool del_address(string address_id);
-    long ping(string address_id);
-    void StartSession(string address_id, string market);
+    string ping(string address_id);
+    void StartSession(string address_id, string market, bool snapshot, string context, string classType);
     void StopSession(string address_id, string market);
+    void LoggingEvent(string address_id, string clss, string context, string text);
 
 
 };

@@ -48,7 +48,10 @@ file(GLOB SOURCES "src/*.cpp")
 file(GLOB HITB "src/exchange/HITB/*.cpp")
 file(GLOB STEX "src/exchange/STEX/*.cpp")
 file(GLOB CBPR "src/exchange/CBPR/*.cpp")
-add_executable(cp ${SOURCES} ${HITB} ${STEX} ${CBPR})
+file(GLOB BNUS "src/exchange/BNUS/*.cpp")
+file(GLOB EXMO "src/exchange/EXMO/*.cpp")
+file(GLOB lib_json "src/lib_json/*.cpp")
+add_executable(cp ${SOURCES}  ${lib_json} ${HITB} ${STEX} ${CBPR} ${BNUS} ${EXMO})
 
 target_link_libraries(cp ${requiredlibs} cpprestsdk::cpprest)
 

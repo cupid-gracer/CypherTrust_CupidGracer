@@ -7,6 +7,8 @@
 #include "API.h"
 #include "Util.h"
 #include "exchange/HITB/HITB.h"
+#include "exchange/BNUS/BNUS.h"
+#include "exchange/EXMO/EXMO.h"
 #include <thread>
 
 using namespace std;
@@ -17,22 +19,25 @@ class App
 public:
 
     App();
-    App(int* signal_status, string con_setting_str, string type, string scope, API api);
+    App(int* signal_status, string con_setting_str, string type, string scope, API api, bool isLAN, string interface, bool *isExitApp);
     ~App();
 
     API api;
     string uri;
     Util util;
     int* signal_status;
+    bool* isExitApp;
 
     HITB* hitb;
     CBPR* cbpr;
+    BNUS* bnus;
+    EXMO* exmo;
 
     thread th_redisMan;
     /* Variable Declare */
     // bootstrap variables
-    string  redisConnectorChannel,
-            redisOrderBookChannel,
+    string  inbound,
+            outbound,
             redisHost,
             redisPassword,
             logHost,
@@ -48,10 +53,12 @@ public:
             redisURL,
             addressID,
             scope,
-            redisChannel;
+            redisChannel,
+            interface;
     int redisPort, logPort;
     bool    walletEnabled,
             isAppRunning,
+            isLAN,
             isPingReceived;
     vector<string> symbols;
     string type;
@@ -59,6 +66,8 @@ public:
 
     void setGlobalValue(string res);
 
+    long pingTrigger();
+    
     void redisMan();
 
     void run(bool StartOrStop);

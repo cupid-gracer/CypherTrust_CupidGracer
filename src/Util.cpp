@@ -9,6 +9,7 @@
 #include <thread>
 #include <algorithm>
 #include <openssl/sha.h>
+#include <openssl/hmac.h>
 #include "SHA1.h"
 
 #include <sstream>
@@ -18,14 +19,10 @@
 
 #include <sw/redis++/redis++.h>
 
-/* rapidjson */
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
-
+#include <json/json.h>
+#include <json/value.h>
 
 using namespace std;
-using namespace rapidjson;
 using namespace sw::redis;
 
 
@@ -115,8 +112,9 @@ static const unsigned char pr2six[256] =
 int Util::Base64decode_len(const char *bufcoded)
 {
     int nbytesdecoded;
-    register const unsigned char *bufin;
-    register int nprbytes;
+     const unsigned char *bufin;
+    // register int nprbytes;
+    int nprbytes;
 
     bufin = (const unsigned char *)bufcoded;
     while (pr2six[*(bufin++)] <= 63)
@@ -131,9 +129,12 @@ int Util::Base64decode_len(const char *bufcoded)
 int Util::Base64decode(char *bufplain, const char *bufcoded)
 {
     int nbytesdecoded;
-    register const unsigned char *bufin;
-    register unsigned char *bufout;
-    register int nprbytes;
+    const unsigned char *bufin;
+    // register const unsigned char *bufin;
+    unsigned char *bufout;
+    // register unsigned char *bufout;
+    int nprbytes;
+    // register int nprbytes;
 
     bufin = (const unsigned char *)bufcoded;
     while (pr2six[*(bufin++)] <= 63)
@@ -257,24 +258,26 @@ void Util::setFinishTimestamp()
     finishTimestamp = GetNowTimestamp();
 }
 
-void Util::publishLatency(string redisURL, string redisHeartbeatChannel, string object, string addressID, string status, long ts, long latency)
+void Util::publishLatency(string redisURL, string redisConnectorChannel, string object, string addressID, string status, long ts, long latency)
 {
-    Document d;
-    rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
-    d.SetObject();
-    d.AddMember("type", "heartbeat", allocator);
-    d.AddMember("object", Value().SetString(StringRef(object.c_str())), allocator);
-    d.AddMember("address", Value().SetString(StringRef(addressID.c_str())), allocator);
-    d.AddMember("status", Value().SetString(StringRef(status.c_str())), allocator);
-    d.AddMember("ts", ts, allocator);
-    d.AddMember("latency", latency, allocator);
+    Json::Value obj;
 
-    StringBuffer sb;
-    Writer<StringBuffer> w(sb);
-    d.Accept(w);
-    
-    auto redis = Redis(redisURL);
-    redis.publish(redisHeartbeatChannel, sb.GetString());
+    obj["type"]    = "heartbeat";
+    obj["object"]  = object;
+    obj["address"] = addressID;
+    obj["status"]  = status;
+    obj["ts"]      = ts;
+    obj["latency"] = latency;
+
+    Json::StreamWriterBuilder streamWriterBuilder;
+    streamWriterBuilder["indentation"] = "";
+    string out = writeString(streamWriterBuilder, obj);
+    out.erase(remove(out.begin(), out.end(), '\n'), out.end());
+
+    using Attrs = vector<pair<string, string>>;
+    Attrs attrs = { {"heartbeat", out }};
+    Redis redis = Redis(redisURL);
+    redis.xadd(redisConnectorChannel, "*", attrs.begin(), attrs.end());
 }
 
 
@@ -286,10 +289,53 @@ int Util::findIndex(vector<string> V, string s)
 bool Util::isValueInVector(vector<string> V, string s)
 {
     int nowIndex = find(V.begin(), V.end(), s) - V.begin();
-    if(nowIndex >= V.size())
-        return false;
-    else
+    if(nowIndex < V.size())
         return true;
+    else
+        return false;
+}
+
+
+string Util::uint64_to_string( uint64_t value ) {
+    std::ostringstream os;
+    os << value;
+    return os.str();
+}
+
+string getSHA256(string key, string msg)
+{
+    // SHA256();
+    return "test";
+}
+
+string Util::getAddressId(string res, string interface)
+{
+    stringstream input(res);
+    Json::CharReaderBuilder charReaderBuilder;
+    Json::Value obj;
+    string errs;
+    bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
+
+    if (!isParse) return "no";
+
+    Json::Value connectors = obj["connector"];
+
+    if(connectors.size() == 1 || interface == "")
+    {
+        return connectors[0]["id"].asString();
+    }
+
+    for(int i = 0; i < connectors.size(); i++)
+    {
+        string walletId = connectors[i]["wallet"]["walletId"].asString();
+        transform(walletId.begin(), walletId.end(), walletId.begin(), ::tolower);
+        if(walletId == interface)
+        {
+            return connectors[i]["id"].asString(); 
+        }
+    }
+
+    return "noAddressId";
 }
 
 Util::Util()

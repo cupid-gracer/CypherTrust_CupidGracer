@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include "API.h"
 #include "exchange/CBPR/API.h"
 #include "exchange/CBPR/Websock.h"
 
@@ -13,9 +14,10 @@ class CBPR
 {
 public:
     CBPR();
-    CBPR(API app_api, vector<string> symbols, string api_uri, string api_key, string secret, string passcode, string exchangeWsUrl, string redisurl, string connectorID, string  redisConnectorChannel, string redisOrderBookChannel);
+    CBPR(API app_api, vector<string> symbols, string api_uri, string api_key, string secret, string passcode, string exchangeWsUrl, string redisurl, string connectorID, string  redisConnectorChannel, string redisOrderBookChannel, bool *isExitApp);
     ~CBPR();
     /* Declare Variables */
+    bool *isExitApp;
     string uri;
     string product_id;
     string redisURL;

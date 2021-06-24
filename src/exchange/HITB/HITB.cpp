@@ -14,9 +14,8 @@
 #include <thread>
 #include <cmath>
 
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
+#include <json/json.h>
+#include <json/value.h>
 
 #include "API.h"
 #include "Util.h"
@@ -34,7 +33,7 @@ using namespace std;
 static vector<int> res_check (5, 0);
 static bool isRunningHITB = false;
 
-HITB::HITB(API app_api, vector<string> symbols, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel)
+HITB::HITB(API app_api, vector<string> symbols, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel, bool *isExitApp)
 {
 	util = Util();
 	this->app_api = app_api;
@@ -43,6 +42,8 @@ HITB::HITB(API app_api, vector<string> symbols, string api_key, string secret_ke
 	this->redisConnectorChannel = redisConnectorChannel;
 	this->redisOrderBookChannel = redisOrderBookChannel;
 	this->wssURL = wssURL;
+    this->isExitApp = isExitApp;
+
 	if (api_key == "" || secret_key == "")
 	{
 		cout << "api, secret key error!";
@@ -57,7 +58,8 @@ HITB::HITB(API app_api, vector<string> symbols, string api_key, string secret_ke
 	util.Base64encode(base64_string, data, data_length);
 
 
-	api.uri = "https://" + uri;
+	api.uri = uri;
+
 	api.token = base64_string;
 	api.addressID = connectorid;
 	api.redisURL = redisURL;
@@ -79,35 +81,41 @@ HITB::HITB(API app_api, vector<string> symbols, string api_key, string secret_ke
 
 
 
-Document HITB::currency_data_format()
+Json::Value HITB::currency_data_format()
 {
-	Document doc_tickers;
-	doc_tickers.SetObject();
-	rapidjson::Document::AllocatorType &allocator = doc_tickers.GetAllocator();
+    Json::Value doc_tickers;
 
 	try
 	{
 		string str_tickers = api.Get_list_tickers();
 		string str_symbols = api.Get_list_symbols();
 
-		Document d_tickers;
-		Document d_symbols;
-		d_tickers.Parse(str_tickers.c_str());
-		d_symbols.Parse(str_symbols.c_str());
-		const Value &c_tickers = d_tickers;
-		const Value &c_symbols = d_symbols;
+	    Json::Value d_tickers;
+	    Json::Value d_symbols;
+
+        Json::CharReaderBuilder charReaderBuilder;
+        string errs;
+
+        stringstream input1(str_tickers);
+        bool isParse = parseFromStream(charReaderBuilder, input1, &d_tickers, &errs);
+        if (!isParse) return doc_tickers; 
+
+        stringstream input2(str_symbols);
+		isParse = parseFromStream(charReaderBuilder, input2, &d_symbols, &errs);
+        if (!isParse) return doc_tickers;
+
 
 		string str_tickers_all = "[";
 
-		for (int i = 0; i < c_tickers.Size(); i++)
+		for (int i = 0; i < d_tickers.size(); i++)
 		{
-			if (!c_tickers[i]["bid"].IsString() || !c_tickers[i]["ask"].IsString())
+			if (d_tickers[i]["bid"].asString() != "" || d_tickers[i]["ask"].asString() != "")
 			{
 				continue;
 			}
-			string bid = c_tickers[i]["bid"].GetString();
-			string ask = c_tickers[i]["ask"].GetString();
-			string symbol = c_tickers[i]["symbol"].GetString();
+			string bid = d_tickers[i]["bid"].asString();
+			string ask = d_tickers[i]["ask"].asString();
+			string symbol = d_tickers[i]["symbol"].asString();
 			string c_code = "";
 			string m_code = "";
 			if (bid == "" || ask == "")
@@ -116,12 +124,12 @@ Document HITB::currency_data_format()
 				continue;
 
 			bool f = false;
-			for (int j = 0; j < c_symbols.Size(); j++)
+			for (int j = 0; j < d_symbols.size(); j++)
 			{
-				if (c_symbols[j]["id"].GetString() == symbol)
+				if (d_symbols[j]["id"].asString() == symbol)
 				{
-					c_code = c_symbols[j]["baseCurrency"].GetString();
-					m_code = c_symbols[j]["quoteCurrency"].GetString();
+					c_code = d_symbols[j]["baseCurrency"].asString();
+					m_code = d_symbols[j]["quoteCurrency"].asString();
 					f = true;
 					break;
 				}
@@ -129,23 +137,27 @@ Document HITB::currency_data_format()
 			if (!f)
 				continue;
 
-			Document doc_temp_ticker;
-			doc_temp_ticker.SetObject();
-			doc_temp_ticker.AddMember("c_code", Value().SetString(StringRef(c_code.c_str())), allocator);
-			doc_temp_ticker.AddMember("m_code", Value().SetString(StringRef(m_code.c_str())), allocator);
-			doc_temp_ticker.AddMember("bid", Value().SetString(StringRef(bid.c_str())), allocator);
-			doc_temp_ticker.AddMember("ask", Value().SetString(StringRef(ask.c_str())), allocator);
+		    Json::Value doc_temp_ticker;
+		    doc_temp_ticker["c_code"] = c_code;
+		    doc_temp_ticker["m_code"] = m_code;
+		    doc_temp_ticker["bid"] = bid;
+		    doc_temp_ticker["ask"] = ask;
 
-			StringBuffer sb;
-			Writer<StringBuffer> w(sb);
-			doc_temp_ticker.Accept(w);
-			str_tickers_all += sb.GetString();
+			Json::StreamWriterBuilder streamWriterBuilder;
+		    streamWriterBuilder["indentation"] = "";
+
+		    string out = writeString(streamWriterBuilder, doc_temp_ticker);
+		    out.erase(remove(out.begin(), out.end(), '\n'), out.end());
+
+			str_tickers_all += out;
 			str_tickers_all += ",";
 		}
 		str_tickers_all.pop_back();
 		str_tickers_all += "]";
 
-		doc_tickers.Parse(str_tickers_all.c_str());
+
+		stringstream input3(str_tickers_all);
+        isParse = parseFromStream(charReaderBuilder, input3, &doc_tickers, &errs);
 	}
 	catch (exception e)
 	{
@@ -156,112 +168,114 @@ Document HITB::currency_data_format()
 
 void HITB::run()
 {
-	// AC ac = AC(symbols);
-	// while(1)
-	// ac.Get_arbitrage_opportunity(currency_data_format());
 	websock();
 }
 
 void HITB::websock()
 {
-	cout << "web socket start !" << endl;
-
 	try
 	{
-		string basesymbol = "ETH";
-		string quotesymbol = "BTC";
 		wssURL = "wss://api.hitbtc.com/api/2/ws";
-		sock = new HITBWebsock(CypherTrust_symbols, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
-
+		sock = new HITBWebsock(app_api, CypherTrust_symbols, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
 		sock->Connect();
-		cout << "web socket connected !" << endl;
-
-		for(string symbol : CypherTrust_symbols)
-		{
-			app_api.StartSession(connectorID, symbol);
-		}
 	}
 	catch (exception e)
 	{
-		cout << "error occur: " << e.what() << endl;
+        app_api.LoggingEvent(connectorID, "ERROR", "storage", "it occurs error while HITB websocket run : "  + string(e.what()));
 	}
 }
 
 void HITB::exchangeMonitoring()
 {
-	while(isRunningHITB)
+	try
 	{
-		// delay for 10s
 
-        // market monitoring 
-        marketMonitoring();
+		while(isRunningHITB)
+		{
 
-		//set start timestamp before call REST API
-	    util.setStartTimestamp();
-	    //get data on REST API for monitoring
-		string res = api.Get_main_account_balance();
-		//set finish timestamp before call REST API
-	    util.setFinishTimestamp();
+			//set start timestamp before call REST API
+		    util.setStartTimestamp();
+		    //get data on REST API for monitoring
 
-	    long latencyTime = abs(util.finishTimestamp - util.startTimestamp);
-	    size_t json_size = res.size();
-	    long latency = latencyTime/json_size;
+			string res = api.Get_main_account_balance();
 
-	    string status = "online";
+			//set finish timestamp before call REST API
+		    util.setFinishTimestamp();
 
-	    Document d;
-	    ParseResult result = d.Parse(res.c_str());
-	    if(!result)
-	    {
-	    	status = "offline";
-	    	latency = 0;
-	    	res_check.push_back(1);
-	    }
-	    else
-	    {
-	    	if(latencyTime < 5000000000 ) // latencyTime < 5s
-		    {
-		    	status = "online";
-		    	res_check.push_back(0);
+		    long latencyTime = abs(util.finishTimestamp - util.startTimestamp);
+		    size_t json_size = res.size();
+		    long latency = latencyTime/json_size;
 
-		    }
-		    else if(latencyTime >= 5000000000 && latencyTime < 30000000000) // 5s <= latencyTime < 30s
-		    {
-		    	status = "degraded";
-		    	res_check.push_back(0);
+		    string status = "online";
 
-		    }
-		    else if(latencyTime >= 30000000000)
+		    Json::Value d;
+		    Json::CharReaderBuilder charReaderBuilder;
+	        string errs;
+
+	        stringstream input1(res);
+	        bool isParse = parseFromStream(charReaderBuilder, input1, &d, &errs);
+		    if(!isParse)
 		    {
 		    	status = "offline";
 		    	latency = 0;
 		    	res_check.push_back(1);
 		    }
-	    }
-	    
-	    int sum = accumulate(res_check.begin(), res_check.end(), 0);
-	    if(sum == 1)
-	    {
-	    	status = "degraded";
-	    }
-	    else if(sum >= 2)
-	    {
-	    	status = "offline";
-	    	latency = 0;
-	    }
+		    else
+		    {
+		    	if(latencyTime < 5000000000 ) // latencyTime < 5s
+			    {
+			    	status = "online";
+			    	res_check.push_back(0);
 
-	    //publish latency through redis heartbeat channel
-	    util.publishLatency(redisURL, redisConnectorChannel, "exchange", connectorID, status, util.finishTimestamp, latency);
+			    }
+			    else if(latencyTime >= 5000000000 && latencyTime < 30000000000) // 5s <= latencyTime < 30s
+			    {
+			    	status = "degraded";
+			    	res_check.push_back(0);
 
-	    if(status == "offline")
-	    {
-	    	this->~HITB();
-	    	app_api.del_address(connectorID);
-	    	break;
-	    }
-        this_thread::sleep_for(chrono::seconds(10));
+			    }
+			    else if(latencyTime >= 30000000000)
+			    {
+			    	status = "offline";
+			    	latency = 0;
+			    	res_check.push_back(1);
+			    }
+		    }
+		    
+		    int sum = accumulate(res_check.begin(), res_check.end(), 0);
+		    if(sum == 1)
+		    {
+		    	status = "degraded";
+		    }
+		    else if(sum >= 2)
+		    {
+		    	status = "offline";
+		    	latency = 0;
+		    }
 
+		    //publish latency through redis heartbeat channel
+		    util.publishLatency(redisURL, redisConnectorChannel, "exchange", connectorID, status, util.finishTimestamp, latency);
+
+		    if(status == "offline")
+		    {
+		        app_api.LoggingEvent(connectorID, "INFO", "storage", "HITB exchange offline, so it will close all markets");
+		    	app_api.del_address(connectorID);
+		    	this->~HITB();
+		        this_thread::sleep_for(chrono::seconds(5));
+		    	break;
+		    }
+
+		    // market monitoring 
+	        marketMonitoring();
+
+	        this_thread::sleep_for(chrono::seconds(10));
+
+		}
+	}catch(exception e)	
+	{
+        app_api.LoggingEvent(connectorID, "ERROR", "storage", "it occurs error while HITB exchange monitoring : "  + string(e.what()));
 	}
+
 }
 
 void HITB::marketMonitoring()
@@ -285,9 +299,13 @@ void HITB::marketMonitoring()
     string status = "online";
 
     vector<string> noSymbols;
-    Document d;
-    ParseResult result = d.Parse(res.c_str());
-    if(!result)
+    Json::Value d;
+    Json::CharReaderBuilder charReaderBuilder;
+    string errs;
+
+    stringstream input1(res);
+    bool isParse = parseFromStream(charReaderBuilder, input1, &d, &errs);
+    if(!isParse)
     {
     	return;
     }
@@ -295,7 +313,7 @@ void HITB::marketMonitoring()
     {
     	for(string symbol : HITB_symbols)
     	{
-    		if(!d.HasMember(symbol.c_str()))
+    		if(!d[symbol])
     		{
     			noSymbols.push_back(symbol);
     		}
@@ -345,10 +363,10 @@ HITB::HITB()
 HITB::~HITB()
 {
 	isRunningHITB = false;
-	cout << "~HITB() called  !!!!!!!!!!" << endl;
 	sock->~HITBWebsock();
 	for(string symbol : CypherTrust_symbols)
 	{
 		app_api.StopSession(connectorID, symbol);
 	}
+    *isExitApp = true;
 }

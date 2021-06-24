@@ -10,15 +10,15 @@
 #include <csignal>
 #include <thread>
 
-/* rapidjson */
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
+/* Json */
+#include <json/json.h>
+#include <json/value.h>
 
 /* Exchange */
-// #include "exchange/BNUS/BNUS.h"
+#include "exchange/BNUS/BNUS.h"
 // #include "exchange/BTFX/BTFX.h"
 #include "exchange/CBPR/CBPR.h"
+#include "exchange/EXMO/EXMO.h"
 #include "exchange/HITB/HITB.h"
 // #include "exchange/HUOB/HUOB.h"
 // #include "exchange/KRKN/KRKN.h"
@@ -27,23 +27,27 @@
 
 #include "Util.h"
 
-using namespace rapidjson;
 using namespace sw::redis;
 using namespace std;
 
 
 
+
+static long lastSeenTime = 0;
+static long timeSub = 10000000000;  //10s
+
+
+
 App::App()
 {
-    cout << "App() called!" << endl;
 }
 
-App::App(int* signal_status, string con_setting_str, string type, string scope, API api)
+App::App(int *signal_status, string con_setting_str, string type, string scope, API api, bool isLAN, string interface, bool *isExitApp)
 {
-    cout << "App( ******** ) called!" << endl;
     try
     {
         this->signal_status = signal_status;
+        this->isExitApp = isExitApp;
         this->util = Util();
         this->api = api;
 
@@ -51,212 +55,265 @@ App::App(int* signal_status, string con_setting_str, string type, string scope, 
         this->scope = scope;
 
         this->isAppRunning = true;
-        /* set Global values*/
-        cout << "setGlobalValue started!!!"  << endl;
-        setGlobalValue(con_setting_str);
-        cout << "setGlobalValue finished!!!"  << endl;
-        /* set redis*/
+        this->isLAN = isLAN;
+        this->interface = interface;
 
+        /* set Global values*/
+        setGlobalValue(con_setting_str);
+
+        /* set redis*/
         th_redisMan = thread(&App::redisMan, this);
         th_redisMan.detach();
+
+        pingTrigger();
     }
     catch (const Error &e)
     {
-        cout << "\033[1;31mApp initial error occur!\033[0m => " << e.what() << endl;
-        syslog(LOG_PERROR, "App initial error occur!");
+        api.LoggingEvent(addressID, "ERROR", "storage", "it occurs error while init app, will do again.");
     }
 }
 
 App::~App()
 {
-    cout << "~app ()  called!" << endl;
+    api.LoggingEvent(addressID, "INFO", "storage", type + " sending data is finished");
     isAppRunning = false;
-    if(type == "HITB")
+    if (type == "HITB")
     {
         hitb->~HITB();
     }
-    else if(type == "CBPR")
+    else if (type == "CBPR")
     {
         cbpr->~CBPR();
     }
+    else if (type == "BNUS")
+    {
+        bnus->~BNUS();
+    }
+    else if (type == "EXMO")
+    {
+        exmo->~EXMO();
+    }
+}
+
+long App::pingTrigger()
+{
+    string res = api.ping(addressID);
+    if(res == "")
+    {
+        api.LoggingEvent(addressID, "CRITICAL", "storage", "ping response result is empty. Can't get sequence number.");
+        return 0;
+    }
+    stringstream input(res);
+
+    Json::CharReaderBuilder charReaderBuilder;
+    Json::Value obj;
+    string errs;
+    bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
+    if(!isParse) 
+    {
+        api.del_address(addressID);
+        api.LoggingEvent(addressID, "INFO", "storage", "connector stopped because connoctor is offline");
+        this->~App();
+        *isExitApp = true;
+    };
+
+    long seq = obj[addressID]["seq"].asInt64();
+    return seq;
 }
 
 void App::redisMan()
 {
-    cout << "=========   redisMan thread started   ======== :  " <<  endl;
-    try
+    cout << util.Green << " - Setting up heartbeats: Done" << util.ResetColor << endl;
+    api.LoggingEvent(addressID, "INFO", "storage", "Setting up heartbeats: Done.");
+    while (isAppRunning)
     {
-        isPingReceived = false;
-        auto redis = Redis(redisURL);
-
-    cout << "=========   redisMan redis created   ======== :  " <<  endl;
-
-        // Create a Subscriber.
-        auto sub = redis.subscriber();
-    cout << "=========   redisMan subscriber created   ======== :  " <<  endl;
-
-        // Set callback functions.
-        sub.on_message([this](string channel, string msg) {
-            try{
-
-                cout << msg << endl;
-
-                Document d;
-                
-                ParseResult result = d.Parse(msg.c_str());
-                if (!result)
-                {
-                    std::cerr << "JSON parse error: " << msg << endl;
-                    return;
-                }
-                if(!d.HasMember("type")) return;
-                string type = d["type"].GetString();
-                if(type != "ping") return;
-
-                isPingReceived = true;
-                long seq = d["seq"].GetUint64();
-                pong(seq);
-
-            }catch(exception e){
-                cout << "subscribe error occur :" << e.what() << endl;
-            }
-        });
-
-        // Subscribe to channels and patterns.
-
-        sub.subscribe(redisConnectorChannel);
-      
-        this_thread::sleep_for(chrono::seconds(10));
-        if(!isPingReceived)
+        try
         {
-            if(long seq = api.ping(addressID) == 0)
+            long nowTimeStamp = util.GetNowTimestamp();
+            if( abs(nowTimeStamp - lastSeenTime ) >= timeSub )
             {
-
-                this->~App();
-                api.del_address(addressID);
+                long seq1 = pingTrigger();
+                pong(seq1);
+                continue;
             }
-            else
+
+
+            auto redis = Redis(redisURL);
+
+            using Attrs = vector<pair<string, string>>;
+
+            // Each item is assigned with an id: pair<id, attributes>.
+            using Item = pair<string, Attrs>;
+            using ItemStream = vector<Item>;
+
+            std::unordered_map<string, ItemStream> result;
+            string ddd;
+
+            redis.xread(inbound, "$", std::chrono::seconds(1), std::inserter(result, result.end()));
+
+            string msg = "";
+            for (const auto &stream : result)
             {
-                isPingReceived = true;
-                pong(seq);
+                auto &it = stream.second[0];
+                auto &attr = it.second[0];
+                msg = attr.second;
             }
+
+            if(msg == "") continue;
+            
+            stringstream input(msg);
+            Json::CharReaderBuilder charReaderBuilder;
+            Json::Value obj;
+            string errs;
+            bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
+        
+            if (!isParse)
+            {
+                std::cerr << "JSON parse error: " << msg << endl;
+                continue;
+            }
+
+            if (!obj["type"])
+                continue;
+            string type = obj["type"].asString();
+            if (type != "ping")
+            {
+                continue;
+            }
+
+            isPingReceived = true;
+            long seq = obj["seq"].asInt64();
+            pong(seq);
         }
-
-        // Consume messages in a loop.
-        while (isAppRunning) {
-            try {
-                sub.consume();
-
-            }
-            catch (const Error& err) {
-                cout << "\033[1;31mRedis subscribe error occur!\033[0m => " << err.what() << endl;
-                syslog(LOG_PERROR, "Redis subscribe error occur!");
-            }
+        catch (const Error &e)
+        {
+            api.LoggingEvent(addressID, "WARNING", "storage", "it occurs error while connector monitoring : "  + string(e.what()));
         }
-    cout << "=========   redisMan thread finished   ======== :  " <<  endl;
-
-    }
-    catch (const Error &e)
-    {
-        cout << "\033[1;31mRedis error occur!!!!\033[0m => " << e.what() << endl;
-        syslog(LOG_PERROR, "Redis error occur!");
     }
 }
-
 
 void App::setGlobalValue(string res)
 {
-    //  get address id
-    size_t pos = res.find("\"connector\"");
-
-    string st = res.substr(pos, 40);
-    vector<string> st_array;
-    util.split(st, '"', st_array);
-    addressID = st_array[2];
-
-    cout << "addressID  "  << addressID  << endl;
-
-    string pre_channel = "cyphertrust_database_";
-
-    Document d;
-    d.Parse(res.c_str());
-
-    // get redis info
-    redisHost = d["bootstrap"]["redisHost"].GetString();
-    redisPort = d["bootstrap"]["redisPort"].GetInt();
-    redisPassword = d["bootstrap"]["redisPassword"].GetString();
-
-    Value& val_connector = d["connector"][Value().SetString(StringRef(addressID.c_str()))];
-
-    redisConnectorChannel = pre_channel + val_connector["channel"]["connector"].GetString();
-    redisOrderBookChannel = pre_channel + val_connector["channel"]["orderbook"].GetString();
-    
-
-    walletName      = val_connector["wallet"]["walletName"].GetString();
-    // walletEnabled   = val_connector["wallet"]["walletEnabled"].GetBool();
-    exchangeSecret  = val_connector["wallet"]["exchangeSecret"].GetString();
-    // exchangePassword = val_connector["wallet"]["exchangePassword"].GetString();
-    exchangeKey     = val_connector["wallet"]["exchangeKey"].GetString();
-    exchangeApiUrl  = val_connector["wallet"]["exchangeApiUrl"].GetString();
-    exchangeWsUrl   = val_connector["wallet"]["exchangeWsUrl"].GetString();
-    // exchangeRedisOrderChannel = val_connector["wallet"]["exchangeRedisOrderChannel"].GetString();
-    // portfolioName   = val_connector["wallet"]["portfolioName"].GetString();
-
-    
-    // walletName = "Coinbase Pro Sandbox Dev";
-    // walletEnabled = true;
-    // exchangeSecret = "dOYGUFftjS5i--H8rNSoyu8rDRmIDWtH";
-    // exchangePassword = "k7on2nlkl1s";
-    // exchangeKey = "wcvsKvAvq5Ta8ZRfk0R_bBi6nReTbMCb";
-    // exchangeApiUrl = "api.hitbtc.com/api/2";
-    // exchangeWsUrl = "ws-feed.pro.coinbase.com";
-    // exchangeRedisOrderChannel = "orders.cb.aldenburgh";
-    // portfolioName = "Aldenburgh";
-
-    const Value &e = val_connector["market"]["full"];
-    for (int i = 0; i < e.Size(); i++)
+    try
     {
-        string symbol = e[i].GetString();
-        transform(symbol.begin(), symbol.end(), symbol.begin(), ::toupper);
-        symbols.push_back(symbol);
-    }
-    redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
-    // cout << "redis URL : "  << redisURL << endl;
-    redisChannel = "cyphertrust_database_" + addressID;
-}
+        //  get address id
+        addressID = util.getAddressId(res, interface);
 
+        string wss = "wss://";
+        string https = "https://";
+
+        stringstream input(res);
+        Json::CharReaderBuilder charReaderBuilder;
+        Json::Value obj;
+        string errs;
+        bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
+
+        if (!isParse) return;
+
+
+        // get redis info
+        redisHost = obj["bootstrap"]["redisHost"].asString();
+        cout << util.Green << " - Registering the Redis network: "<< redisHost << util.ResetColor << endl;
+
+        redisPort = obj["bootstrap"]["redisPort"].asInt();
+        redisPassword = obj["bootstrap"]["redisPassword"].asString();
+        string redisPrefix = obj["bootstrap"]["redisPrefix"].asString();
+
+        Json::Value val_connector = obj["connector"];
+
+        for(int i = 0; i < val_connector.size(); i++)
+        {
+            if(val_connector[i]["id"] != addressID) continue;
+
+            inbound = redisPrefix + val_connector[i]["streaming"]["inbound"].asString();
+            outbound = redisPrefix + val_connector[i]["streaming"]["outbound"].asString();
+
+
+            walletName = val_connector[i]["wallet"]["walletName"].asString();
+            exchangeSecret = val_connector[i]["wallet"]["exchangeSecret"].asString();
+            if (val_connector[i]["wallet"]["exchangePassword"])
+            {
+                exchangePassword = val_connector[i]["wallet"]["exchangePassword"].asString();
+            }
+            exchangeKey = val_connector[i]["wallet"]["exchangeKey"].asString();
+            exchangeApiUrl = https + val_connector[i]["wallet"]["exchangeApiUrl"].asString();
+            exchangeWsUrl = wss + val_connector[i]["wallet"]["exchangeWsUrl"].asString();
+           
+            const Json::Value e = val_connector[i]["market"];
+            for (int j = 0; j < e.size(); j++)
+            {
+                if(j >= 5) break;
+                string symbol = e[j].asString();
+                transform(symbol.begin(), symbol.end(), symbol.begin(), ::toupper);
+                symbols.push_back(symbol);
+            }
+        }
+
+        redisURL = "tcp://" + redisPassword + "@" + redisHost + ":" + to_string(redisPort);
+        if(isLAN)
+        {
+            redisURL = "tcp://127.0.0.1";
+        }
+        redisChannel = "cyphertrust_database_" + addressID;
+    }
+    catch(const Error &e)
+    {
+        api.LoggingEvent(addressID, "ERROR", "storage", "it occurs error while init variables : " + string(e.what()));
+
+    }
+}
 
 void App::pong(long seq)
 {
     auto redis = Redis(redisURL);
-    Document d_pong;
-    rapidjson::Document::AllocatorType &allocator = d_pong.GetAllocator();
-    d_pong.SetObject();
 
-    d_pong.AddMember("type", "pong", allocator);
-    d_pong.AddMember("object", "connector", allocator);
-    d_pong.AddMember("address", Value().SetString(StringRef(addressID.c_str())), allocator);
-    d_pong.AddMember("status", "online", allocator);
-    d_pong.AddMember("ts", util.GetNowTimestamp(), allocator);
-    d_pong.AddMember("seq", seq, allocator);
-    d_pong.AddMember("latency", NULL, allocator);
+    lastSeenTime = util.GetNowTimestamp();
 
-    StringBuffer sb;
-    Writer<StringBuffer> w(sb);
-    d_pong.Accept(w);
-    redis.publish(redisConnectorChannel, sb.GetString());
+    Json::Value d_pong;
+
+    d_pong["type"]      = "pong";
+    d_pong["object"]    = "connector";
+    d_pong["address"]   = addressID;
+    d_pong["status"]    = "online";
+    d_pong["seq"]       = seq;
+    d_pong["ts"]        = lastSeenTime;
+    d_pong["latency"]   = "";
+
+    Json::StreamWriterBuilder streamWriterBuilder;
+    streamWriterBuilder["indentation"] = "";
+
+    string out = writeString(streamWriterBuilder, d_pong);
+    out.erase(remove(out.begin(), out.end(), '\n'), out.end());
+
+    using Attrs = vector<pair<string, string>>;
+    Attrs attrs = {{"heartbeat", out}};
+    redis.xadd(inbound, "*", attrs.begin(), attrs.end());
 }
 
 void App::run(bool StartOrStop)
 {
-    cout << "------------    app  run   ----------------    "<<  StartOrStop  << endl;
-    //test
-    type = "HITB";
+
+    cout << util.Green << " - Setting up exchange interfaces and streams: Done" << util.ResetColor << endl;
+    api.LoggingEvent(addressID, "INFO", "storage", "Setting up exchange interfaces and streams: Done");
 
     if (type == "BNUS")
     {
-        // BNUS bnus = BNUS();
-        // bnus.run();
+        string api_key = exchangeKey;
+        string secret_key = exchangeSecret;
+        string uri = exchangeApiUrl;
+        exchangeWsUrl = exchangeWsUrl + "/ws";
+
+        bnus = new BNUS(api, symbols, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, inbound, outbound, isExitApp);
+        bnus->run();
+    }
+    else if (type == "EXMO")
+    {
+        string api_key = exchangeKey;
+        string secret_key = exchangeSecret;
+        string uri = exchangeApiUrl;
+        exchangeWsUrl = exchangeWsUrl + ":443/v1/public";
+        exmo = new EXMO(api, symbols, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, inbound, outbound, isExitApp);
+        exmo->run();
     }
     else if (type == "BTFX")
     {
@@ -265,14 +322,12 @@ void App::run(bool StartOrStop)
     }
     else if (type == "CBPR")
     {
-        string api_uri = "api-public.sandbox.pro.coinbase.com";
-        string api_key = "11dfbdd50299d30a03ea46736da2cb73";
+
+        string api_uri = exchangeApiUrl;
+        string api_key = exchangeKey;
         string secret_key = exchangeSecret;
-               secret_key = "Aw4LtSL8CPTciYXVqV7s1ZZyiFdWgIu0nDeHWuGqK5LvUgAi1ACPPyiJY4uN65+7DgF9D0QzAVGFp4FaVHmWxw==";
-        string passcode = "k7on2nlkl1s";
-        
-        cout << "-----  CBPR init in app.cpp:    ------" << endl;
-        cbpr = new CBPR(api, symbols, api_uri, api_key, secret_key, passcode, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
+        string passcode = exchangePassword;
+        cbpr = new CBPR(api, symbols, api_uri, api_key, secret_key, passcode, exchangeWsUrl, redisURL, addressID, inbound, outbound, isExitApp);
         cbpr->run();
     }
     else if (type == "HITB")
@@ -280,9 +335,7 @@ void App::run(bool StartOrStop)
         string api_key = exchangeKey;
         string secret_key = exchangeSecret;
         string uri = exchangeApiUrl;
-        
-        cout << "-----  HITB init in app.cpp:    ------" << endl;
-        hitb = new HITB(api, symbols, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, redisConnectorChannel, redisOrderBookChannel);
+        hitb = new HITB(api, symbols, api_key, secret_key, uri, exchangeWsUrl, redisURL, addressID, inbound, outbound, isExitApp);
         hitb->run();
     }
     else if (type == "HUOB")
@@ -307,4 +360,6 @@ void App::run(bool StartOrStop)
         STEX stex = STEX(symbols, access_token, uri, redisURL, addressID);
         stex.run();
     }
+
+    *signal_status = 1;
 }

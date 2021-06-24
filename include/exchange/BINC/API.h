@@ -1,20 +1,20 @@
 // Api.h
-#ifndef BNUSAPI_H
-#define BNUSAPI_H
+#ifndef BINCAPI_H
+#define BINCAPI_H
 
 #include <string>
 #include <vector>
 
 using namespace std;
 
-class BNUSAPI
+class BINCAPI
 {
 private:
     string Call(string method, bool authed, string path, string body);
 
 public:
-    BNUSAPI();
-    ~BNUSAPI();
+    BINCAPI();
+    ~BINCAPI();
     string uri;
     string product_id;
     string api_key;
@@ -23,13 +23,6 @@ public:
     string redisURL;
     string redisConnectorChannel;
    
-
-  /*
-  Name:
-      Get order
-  */
-  string Get_orderbook(string market, string limit);
-
     // Accounts
     /*
   Name:
@@ -413,4 +406,4 @@ public:
 
 
 
-#endif // BNUSAPI_H
+#endif // BINCAPI_H

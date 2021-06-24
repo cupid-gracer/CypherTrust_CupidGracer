@@ -36,60 +36,68 @@ string HITBAPI::Call(string method, bool authed, string path, string body)
   string readBuffer;
   curl = curl_easy_init();
 
-  if (curl)
-  {
-    struct curl_slist *chunk = NULL;
-    curl_easy_setopt(curl, CURLOPT_URL, (uri + path).c_str());
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl/1.0");
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    chunk = curl_slist_append(chunk, "accept: application/json");
-    if (authed)
+  try{
+    if (curl)
     {
-      chunk = curl_slist_append(chunk, ("authorization: Basic " + token).c_str());
-    }
-    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-    if (method == "POST")
-    {
-      chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-    }
-    if (method == "DELETE")
-    {
-      chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-    }
-    if (method == "PUT")
-    {
-      chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-    }
-    if (method == "PATCH")
-    {
-      chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-    }
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+      struct curl_slist *chunk = NULL;
+      curl_easy_setopt(curl, CURLOPT_URL, (uri + path).c_str());
+      curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl/1.0");
+      curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+      curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+      chunk = curl_slist_append(chunk, "accept: application/json");
+      if (authed)
+      {
+        chunk = curl_slist_append(chunk, ("authorization: Basic " + token).c_str());
+      }
+      res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+      if (method == "POST")
+      {
+        chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+      }
+      if (method == "DELETE")
+      {
+        chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+      }
+      if (method == "PUT")
+      {
+        chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+      }
+      if (method == "PATCH")
+      {
+        chunk = curl_slist_append(chunk, "Content-Type: application/x-www-form-urlencoded");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+      }
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-    
-    res = curl_easy_perform(curl);
-    
-    /* Check for errors */
-    if (res != CURLE_OK)
-      std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-    /* always cleanup */
-    curl_easy_cleanup(curl);
-    /* free the custom headers */
-    curl_slist_free_all(chunk);
+      
+      res = curl_easy_perform(curl);
+      
+      /* Check for errors */
+      if (res != CURLE_OK)
+      {
+      }
+      /* always cleanup */
+      curl_easy_cleanup(curl);
+      /* free the custom headers */
+      curl_slist_free_all(chunk);
+      }
+
+  }
+  catch(exception e)
+  {
+    // cout << "hitb api occur: " << e.what() << endl;
   }
   return readBuffer;
 }

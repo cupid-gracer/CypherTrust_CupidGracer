@@ -14,16 +14,17 @@
 #include <thread>
 #include <cmath>
 
-#include <json/json.h>
-#include <json/value.h>
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
 #include "API.h"
 #include "Util.h"
 #include "AC.h"
 
-#include "exchange/BNUS/BNUS.h"
-#include "exchange/BNUS/API.h"
-#include "exchange/BNUS/Websock.h"
+#include "exchange/BINC/BINC.h"
+#include "exchange/BINC/API.h"
+#include "exchange/BINC/Websock.h"
 
 
 
@@ -31,9 +32,9 @@ using namespace rapidjson;
 using namespace std;
 
 static vector<int> res_check (5, 0);
-static bool isRunningBNUS = false;
+static bool isRunningBINC = false;
 
-BNUS::BNUS(API app_api, vector<string> symbols, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel, bool *isExitApp)
+BINC::BINC(API app_api, vector<string> symbols, string api_key, string secret_key, string uri, string wssURL, string redisurl, string connectorid, string redisConnectorChannel, string redisOrderBookChannel)
 {
 	util = Util();
 	this->app_api = app_api;
@@ -42,8 +43,6 @@ BNUS::BNUS(API app_api, vector<string> symbols, string api_key, string secret_ke
 	this->redisConnectorChannel = redisConnectorChannel;
 	this->redisOrderBookChannel = redisOrderBookChannel;
 	this->wssURL = wssURL;
-    this->isExitApp = isExitApp;
-    
 	if (api_key == "" || secret_key == "")
 	{
 		cout << "api, secret key error!";
@@ -69,41 +68,52 @@ BNUS::BNUS(API app_api, vector<string> symbols, string api_key, string secret_ke
 	for(string symbol : CypherTrust_symbols)
     {
         symbol.erase(remove(symbol.begin(), symbol.end(), '-'), symbol.end());
-        BNUS_symbols.push_back(symbol);
+        BINC_symbols.push_back(symbol);
     }
 
-    isRunningBNUS = true;
+    isRunningBINC = true;
 
-	th = thread(&BNUS::exchangeMonitoring, this);
-    th.detach();
+	// th = thread(&BINC::exchangeMonitoring, this);
+ //    th.detach();
 }
 
 
-void BNUS::run()
+void BINC::run()
 {
+	// AC ac = AC(symbols);
+	// while(1)
+	// ac.Get_arbitrage_opportunity(currency_data_format());
 	websock();
 }
 
-void BNUS::websock()
+void BINC::websock()
 {
+	cout << "web socket start !" << endl;
+
 	try
 	{
 		string basesymbol = "ETH";
 		string quotesymbol = "BTC";
 		wssURL = "wss://stream.binance.com:9443/ws";
-		sock = new BNUSWebsock(app_api, CypherTrust_symbols, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
+		sock = new BINCWebsock(CypherTrust_symbols, wssURL, connectorID, redisURL,redisOrderBookChannel, redisConnectorChannel);
 
 		sock->Connect();
+		cout << "web socket connected !" << endl;
+
+		for(string symbol : CypherTrust_symbols)
+		{
+			app_api.StartSession(connectorID, symbol);
+		}
 	}
 	catch (exception e)
 	{
-        app_api.LoggingEvent(connectorID, "ERROR", "storage", "it occurs error while BNUS websocket run : "  + string(e.what()));
+		cout << "BINC websock start error occur: " << e.what() << endl;
 	}
 }
 
-void BNUS::exchangeMonitoring()
+void BINC::exchangeMonitoring()
 {
-	while(isRunningBNUS)
+	while(isRunningBINC)
 	{
 		// delay for 10s
 
@@ -113,7 +123,8 @@ void BNUS::exchangeMonitoring()
 		//set start timestamp before call REST API
 	    util.setStartTimestamp();
 	    //get data on REST API for monitoring
-		string res = api.Get_orderbook("BTCUSDT", "5");
+		// string res = api.Get_main_account_balance();
+		string res = "";
 		//set finish timestamp before call REST API
 	    util.setFinishTimestamp();
 
@@ -123,14 +134,9 @@ void BNUS::exchangeMonitoring()
 
 	    string status = "online";
 
-
-	    Json::CharReaderBuilder charReaderBuilder;
-        Json::Value obj;
-        stringstream input(res);
-        string errs;
-        bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
-
-	    if(!isParse)
+	    Document d;
+	    ParseResult result = d.Parse(res.c_str());
+	    if(!result)
 	    {
 	    	status = "offline";
 	    	latency = 0;
@@ -174,9 +180,8 @@ void BNUS::exchangeMonitoring()
 
 	    if(status == "offline")
 	    {
-	        app_api.LoggingEvent(connectorID, "INFO", "storage", "BNUS exchange offline, so it will close all markets");
+	    	this->~BINC();
 	    	app_api.del_address(connectorID);
-	    	this->~BNUS();
 	    	break;
 	    }
         this_thread::sleep_for(chrono::seconds(10));
@@ -184,11 +189,11 @@ void BNUS::exchangeMonitoring()
 	}
 }
 
-void BNUS::marketMonitoring()
+void BINC::marketMonitoring()
 {
 	//set start timestamp before call REST API
     string api_symbols = "";
-    for(string symbol : BNUS_symbols)
+    for(string symbol : BINC_symbols)
     {
     	api_symbols += symbol + ",";
     }
@@ -206,23 +211,17 @@ void BNUS::marketMonitoring()
     string status = "online";
 
     vector<string> noSymbols;
-
-
-    Json::CharReaderBuilder charReaderBuilder;
-    Json::Value obj;
-    stringstream input(res);
-    string errs;
-    bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
-
-    if(!isParse)
+    Document d;
+    ParseResult result = d.Parse(res.c_str());
+    if(!result)
     {
     	return;
     }
     else
     {
-    	for(string symbol : BNUS_symbols)
+    	for(string symbol : BINC_symbols)
     	{
-    		if(!obj[symbol])
+    		if(!d.HasMember(symbol.c_str()))
     		{
     			noSymbols.push_back(symbol);
     		}
@@ -239,7 +238,7 @@ void BNUS::marketMonitoring()
     	if(!f)
     	{
     		status = "online";
-    		string object = "market." + CypherTrust_symbols[util.findIndex(BNUS_symbols, o_s)];
+    		string object = "market." + CypherTrust_symbols[util.findIndex(BINC_symbols, o_s)];
 		    util.publishLatency(redisURL, redisConnectorChannel, object, connectorID, status, util.finishTimestamp, latency);
     	}
     }
@@ -254,7 +253,7 @@ void BNUS::marketMonitoring()
     	if(!f)
     	{
     		status = "offline";
-    		string object = "market." + CypherTrust_symbols[util.findIndex(BNUS_symbols, n_s)];
+    		string object = "market." + CypherTrust_symbols[util.findIndex(BINC_symbols, n_s)];
 		    util.publishLatency(redisURL, redisConnectorChannel, object, connectorID, status, util.finishTimestamp, latency);
     	}
     }
@@ -264,18 +263,18 @@ void BNUS::marketMonitoring()
 
 
 
-BNUS::BNUS()
+BINC::BINC()
 {
 }
 
 
-BNUS::~BNUS()
+BINC::~BINC()
 {
-	isRunningBNUS = false;
-	sock->~BNUSWebsock();
+	isRunningBINC = false;
+	cout << "~BINC() called  !!!!!!!!!!" << endl;
+	sock->~BINCWebsock();
 	for(string symbol : CypherTrust_symbols)
 	{
 		app_api.StopSession(connectorID, symbol);
 	}
-    *isExitApp = true;
 }

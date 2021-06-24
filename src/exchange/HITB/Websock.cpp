@@ -7,146 +7,320 @@
 #include <thread>
 #include <cmath>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
+#include <json/json.h>
+#include <json/value.h>
 
 #include <sw/redis++/redis++.h>
 
-using namespace rapidjson;
 using namespace sw::redis;
 using namespace std;
 using namespace boost::posix_time;
 
 static int count1 = 0;
 static int subscribe_id = 1;
-static bool f_start_order = false;
-static bool f_stop_order = false;
+static bool isStreamNow = false;
+static bool isFirstSend = true;
+static bool isFirstSendDone = false;
 static long lastTimestamp = 0;
 static long timeSub = 100000000000;  //100s
+static vector<string> registeredMarkets;
+
+static int seq = 0;
+
+static int test_thread_num = 0;
+
+
 
 void HITBWebsock::message_handler(web::websockets::client::websocket_incoming_message msg)
 {
+    thread th_message_process = thread(&HITBWebsock::message_process, this, msg);
+    th_message_process.detach();
+}
+
+void HITBWebsock::message_process(web::websockets::client::websocket_incoming_message msg)
+{
     try
-    {   
-        string input = msg.extract_string().get();
-        Document d;
-        ParseResult result = d.Parse(input.c_str());
-        if (!result)
+    {
+        string _msg = msg.extract_string().get();
+        stringstream input(_msg);
+
+        Json::CharReaderBuilder charReaderBuilder;
+        Json::Value obj;
+        string errs;
+        bool isParse = parseFromStream(charReaderBuilder, input, &obj, &errs);
+
+        if (!isParse)
         {
-            std::cerr << "JSON parse error: " << input << endl;
+            app_api.LoggingEvent(ConnectorID, "WARNING", "stream", "HITB websocket stream data error");
             return;
         }
-        if (d.HasMember("result") || d.HasMember("error") || !d.HasMember("params"))
+
+        if (obj["result"] || obj["error"] || !obj["params"])
+        {
             return;
+        }
 
         string ts;
         uint64_t seq;
-        string connector = ConnectorID;
-        string exchange = "hitb";
-        string market = CypherTrust_symbols[util.findIndex(HITB_symbols, d["params"]["symbol"].GetString())] ;
+        string market = CypherTrust_symbols[util.findIndex(HITB_symbols, obj["params"]["symbol"].asString())] ;
+        string method = obj["method"].asString();
 
-        cout << "------------------------------------------  " << count1++ << endl;
-        if (d["params"].HasMember("sequence"))
+        //  orderbook data processing
+        if ( method == "snapshotOrderbook" || method == "updateOrderbook" )
         {
-            ts = d["params"]["timestamp"].GetString();
-            seq = d["params"]["sequence"].GetUint64();
-            cout << "market number :  " << util.findIndex(HITB_symbols, d["params"]["symbol"].GetString()) << endl;
-            cout << "market :  " << market << "  " << d["params"]["symbol"].GetString() << endl;
-            cout << "sequence :  " << d["params"]["sequence"].GetUint64() << endl;
-            cout << "timestamp :  " << d["params"]["timestamp"].GetString() << endl;
+            ts = obj["params"]["timestamp"].asString();
+            lastTimestamp = util.ConvertNanoseconds(ts);
+            seq = obj["params"]["sequence"].asInt64();
+
+            const Json::Value bids = obj["params"]["bid"];
+            const Json::Value asks = obj["params"]["ask"];
+
+            Json::StreamWriterBuilder streamWriterBuilder;
+            streamWriterBuilder["indentation"] = "";
+
+            if( method == "snapshotOrderbook")
+            {
+                app_api.LoggingEvent(ConnectorID, "INFO", "stream", "Sending of a snapshot for orders.");
+                string str_bids = writeString(streamWriterBuilder, bids);
+                string str_asks = writeString(streamWriterBuilder, asks);
+                boost::algorithm::replace_all(str_bids, "price", "");
+                boost::algorithm::replace_all(str_bids, "size", "");
+                boost::algorithm::replace_all(str_bids, ":", "");
+                boost::algorithm::replace_all(str_bids, "{", "[");
+                boost::algorithm::replace_all(str_bids, "}", "]");
+                boost::algorithm::replace_all(str_bids, "\"", "");
+                boost::algorithm::replace_all(str_asks, "price", "");
+                boost::algorithm::replace_all(str_asks, "size", "");
+                boost::algorithm::replace_all(str_asks, ":", "");
+                boost::algorithm::replace_all(str_asks, "{", "[");
+                boost::algorithm::replace_all(str_asks, "}", "]");
+                boost::algorithm::replace_all(str_asks, "\"", "");
+                snapshotMass("order", market,  str_bids, str_asks);
+            }
+            if( method == "updateOrderbook")
+            {
+                // long exchangeTimestamp = util.ConvertNanoseconds(obj["time"].asString());
+                long connectorTimestamp = util.GetNowTimestamp();
+                if(abs(connectorTimestamp - lastTimestamp) >= timeSub )
+                {
+                    return;
+                }
+
+                if(isFirstSend)
+                {
+                    isFirstSend = false;
+                    app_api.LoggingEvent(ConnectorID, "INFO", "stream", "Starting of a market stream for orders");
+                    app_api.LoggingEvent(ConnectorID, "INFO", "stream", "Starting of a market stream for trades");
+                    sendToRedis("order", "",  "start",  "",  "", 1, 0);
+                    sendToRedis("trade", "",  "start",  "",  "", 1, 0);
+                    isFirstSendDone = true;
+                }
+                if(!isFirstSendDone)
+                {
+                    return;
+                }
+
+                if(!util.isValueInVector(registeredMarkets, "order"+market+"bid"))
+                {
+                    registeredMarkets.push_back("order"+market+"bid");
+                    app_api.StartSession(ConnectorID, market, true, "order", "bid");
+                }
+                if(!util.isValueInVector(registeredMarkets, "order"+market+"ask"))
+                {
+                    registeredMarkets.push_back("order"+market+"ask");
+                    app_api.StartSession(ConnectorID, market, true, "order", "ask");
+                }
+
+                for (int i = 0; i < bids.size(); i++)
+                {
+                    string price  = bids[i]["price"].asString();
+                    string volume = bids[i]["size"].asString();
+                    sendToRedis("order", market,  "bid",  price,  volume, seq, lastTimestamp);
+                }
+
+                for (int i = 0; i < asks.size(); i++)
+                {
+                    string price  = asks[i]["price"].asString();
+                    string volume = asks[i]["size"].asString();
+                    sendToRedis("order", market,  "ask",  price,  volume, seq, lastTimestamp);
+                }
+            }
         }
 
+        //  trades data processing
+        if (method == "snapshotTrades" || method == "updateTrades" )
+        {
+            bool isSnapshotTrades = false;
+            if(method == "snapshotTrades") isSnapshotTrades = true;
 
-        Value &bids = d["params"]["bid"];
-        redisPublishOrder(bids, "bid", ts, seq, market);
+            const Json::Value data = obj["params"]["data"];
+            Json::Value buyTrade;
+            Json::Value sellTrade;
 
-        Value &asks = d["params"]["ask"];
-        redisPublishOrder(asks, "ask", ts, seq, market);
+            for (int i = 0; i < data.size(); i++)
+            {
+                string price = data[i]["price"].asString();
+                string quantity = data[i]["quantity"].asString();
+                string side = data[i]["side"].asString();
+                long exchangeTimestamp = util.ConvertNanoseconds(data[i]["timestamp"].asString());
+
+                //snapshort start 
+                lastTimestamp = exchangeTimestamp;
+
+                bool isFirst = false;
+                // send snapshot
+                if(!util.isValueInVector(registeredMarkets, "trade"+market+side))
+                {
+                    isFirst = true;
+                    registeredMarkets.push_back("trade"+market+side);
+                    app_api.StartSession(ConnectorID, market, true, "trade", side);
+                }
+
+                if(!isSnapshotTrades)
+                {
+                    sendToRedis("trade", market,  side,  price,  quantity, seq++, exchangeTimestamp);
+                }
+                else
+                {
+                    Json::Value temp;
+                    temp.append(price);
+                    temp.append(quantity);
+
+                    if(side == "buy")
+                    {
+                        buyTrade.append(temp);
+                    }
+                    else
+                    {
+                        sellTrade.append(temp);
+                    }
+
+                }
+            }
+
+            if(isSnapshotTrades)
+            {
+                app_api.LoggingEvent(ConnectorID, "INFO", "stream", "Sending of a snapshot for trades.");
+
+                Json::StreamWriterBuilder streamWriterBuilder;
+                streamWriterBuilder["indentation"] = "";
+
+                string outBuy = writeString(streamWriterBuilder, buyTrade);
+                string outSell = writeString(streamWriterBuilder, sellTrade);
+
+                outBuy.erase(remove(outBuy.begin(), outBuy.end(), '"'), outBuy.end());
+                outSell.erase(remove(outSell.begin(), outSell.end(), '"'), outSell.end());
+                snapshotMass("trade", market,  outBuy, outSell);
+            }
+        }
         
     }
     catch (exception e)
     {
-        cout << "error: " << e.what() << endl;
+        app_api.LoggingEvent(ConnectorID, "ERROR", "stream", e.what());
     }
+
+
+
 }
 
-void HITBWebsock::redisPublishOrder(Value &data, string type, string ts, uint64_t seq, string market)
+void HITBWebsock::sendToRedis(string context, string market, string sideclass, string price, string volume, uint64_t sequence, long exchangeTimestamp)
 {
-    lastTimestamp = util.ConvertNanoseconds(ts);
+    if(!is_connected) return;
+    string exchange = "hitb";
+    long connectorTimestamp = util.GetNowTimestamp();
 
-    long nowTimestamp = util.GetNowTimestamp();
-    if(abs(nowTimestamp - lastTimestamp) >= timeSub) // 10s
-    {
-        return;
-    }
+    Redis redis = Redis(RedisUri);
 
-    // when start order, run
-    // if(!f_start_order)
-    // {
-    //     redisPublishStartOrStop("start");
-    //     f_start_order = true;
-    //     f_stop_order = false;
-    // }
+    Json::Value obj;
 
+    obj["context"]      = context;
+    obj["connector"]    = ConnectorID;
+    obj["exchange"]     = exchange;
+    obj["connectorts"]  = connectorTimestamp;
+    obj["exchangets"]   = exchangeTimestamp;
+    obj["seq"]          = sequence;
+    obj["class"]        = sideclass;
+    obj["price"]        = price;
+    obj["volume"]       = volume;
+    obj["market"]       = market;
 
-    long timestamp = util.ConvertNanoseconds(ts);
-    auto redis = Redis(RedisUri);
-    for (int i = 0; i < data.Size(); i++)
-    {
-        string price = data[i]["price"].GetString();
-        string volume = data[i]["size"].GetString();
-        if(volume == "0") continue;
-        string exchange = "hitb";
-        Document doc_bid;
-        rapidjson::Document::AllocatorType &allocator = doc_bid.GetAllocator();
+    Json::StreamWriterBuilder streamWriterBuilder;
+    streamWriterBuilder["indentation"] = "";
 
-        doc_bid.SetObject();
-        doc_bid.AddMember("connector", Value().SetString(StringRef(ConnectorID.c_str())), allocator);
-        doc_bid.AddMember("exchange", Value().SetString(StringRef(exchange.c_str())), allocator);
-        doc_bid.AddMember("ts", timestamp, allocator);
-        doc_bid.AddMember("seq", seq, allocator);
-        doc_bid.AddMember("type", Value().SetString(StringRef(type.c_str())), allocator);
-        doc_bid.AddMember("price", Value().SetString(StringRef(price.c_str())), allocator);
-        doc_bid.AddMember("volume", Value().SetString(StringRef(volume.c_str())), allocator);
-        doc_bid.AddMember("market", Value().SetString(StringRef(market.c_str())), allocator);
+    string out = writeString(streamWriterBuilder, obj);
+    out.erase(remove(out.begin(), out.end(), '\n'), out.end());
 
-        StringBuffer sb;
-        Writer<StringBuffer> w(sb);
-        doc_bid.Accept(w);
-        // if(!f_stop_order){
-            redis.publish(redisOrderBookChannel, sb.GetString());
-        // }
-        break;
-    };
+    using Attrs = vector<pair<string, string>>;
+    Attrs attrs = { {market, out }};
+    redis.xadd(redisOrderBookChannel, "*", attrs.begin(), attrs.end());
 }
 
+void HITBWebsock::snapshotMass(string context, string market, string bids, string asks)
+{
+    if(!is_connected) return;
+    string exchange = "hitb";
+    long connectorTimestamp = util.GetNowTimestamp();
+
+    auto redis = Redis(RedisUri);
+
+    Json::Value obj;
+
+    obj["context"]      = context;
+    obj["class"]        = "snapshot";
+    obj["connectorts"]  = connectorTimestamp;
+    obj["exchange"]     = exchange;
+    obj["market"]       = market;
+    if(context == "order")
+    {
+        obj["bids"]     = bids;
+        obj["asks"]     = asks;
+    }
+    else
+    {
+        obj["buy"]      = bids;
+        obj["sell"]     = asks;   
+    }
+
+    Json::StreamWriterBuilder streamWriterBuilder;
+    streamWriterBuilder["indentation"] = "";
+
+    string out = writeString(streamWriterBuilder, obj);
+    out.erase(remove(out.begin(), out.end(), '\n'), out.end());
+
+    using Attrs = vector<pair<string, string>>;
+    Attrs attrs = { {market, out }};
+    redis.xadd(redisOrderBookChannel, "*", attrs.begin(), attrs.end());
+}
 
 void HITBWebsock::redisPublishStartOrStop(string type)
 {
-    auto redis = Redis(RedisUri);
-    string exchange = "hitb";
-    long timestamp = util.GetNowTimestamp();
+    long nowTimestamp = util.GetNowTimestamp();
+    if (abs(nowTimestamp - lastTimestamp) >= timeSub && type == "start")
+    {
+        if (isStreamNow)
+            type = "stop";
+        else
+            return;
+    }
 
-    Document d;
-    rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+    // when start order, run
+    if(isStreamNow)
+    {
+        if(type == "start") return;
+        else if(type == "stop")
+        {
+            isStreamNow = false;
+        }
+    }
+    else
+    {
+        isStreamNow = true;
+    }
 
-    d.SetObject();
-    d.AddMember("connector", Value().SetString(StringRef(ConnectorID.c_str())), allocator);
-    d.AddMember("exchange", Value().SetString(StringRef(exchange.c_str())), allocator);
-    d.AddMember("ts", timestamp, allocator);
-    d.AddMember("seq", 0, allocator);
-    d.AddMember("type", Value().SetString(StringRef(type.c_str())), allocator);
-    d.AddMember("price", "", allocator);
-    d.AddMember("volume", "", allocator);
-    d.AddMember("market", "", allocator);
-
-    StringBuffer sb;
-    Writer<StringBuffer> w(sb);
-    d.Accept(w);
-
-    redis.publish(redisOrderBookChannel, sb.GetString());
+    sendToRedis("", "",  type,  "",  "", 1, nowTimestamp);
 }
 
 void HITBWebsock::send_message(string to_send)
@@ -156,80 +330,99 @@ void HITBWebsock::send_message(string to_send)
     client.send(out_msg).wait();
 }
 
-string HITBWebsock::subscribeOrderbook(string symbol, bool sub)
+string HITBWebsock::subscribeOrderbook(string subscribeType, string symbol, bool sub)
 {
-    Document d;
-    d.SetObject();
-    rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+    Json::Value obj;
+
     if (sub)
-        d.AddMember("method", "subscribeOrderbook", allocator);
+        obj["method"] = subscribeType;
     else
-        d.AddMember("method", "unsubscribeOrderbook", allocator);
-    Document params;
-    params.SetObject();
-    params.AddMember("symbol", StringRef(symbol.c_str()), allocator);
-    d.AddMember("params", params, allocator);
-    d.AddMember("id", subscribe_id++, allocator);
-    StringBuffer strbuf;
-    Writer<StringBuffer> writer(strbuf);
-    d.Accept(writer);
-    return strbuf.GetString();  
+        obj["method"] = "un" + subscribeType;
+
+    Json::Value params;
+    params["symbol"] = symbol;
+    if(subscribeType == "subscribeTrades")
+    {
+        params["limit"] = 10;
+    }
+
+    obj["params"] = params;
+    obj["id"] = subscribe_id++;
+
+    Json::StreamWriterBuilder streamWriterBuilder;
+    streamWriterBuilder["indentation"] = "";
+
+    string out = writeString(streamWriterBuilder, obj);
+    out.erase(remove(out.begin(), out.end(), '\n'), out.end());
+    return out;
 }
 
 void HITBWebsock::StopOrder()
 {
     while(is_connected)
     {
-        if(f_start_order && !f_stop_order)
+        if(isStreamNow)
         {
             long nowTimestamp = util.GetNowTimestamp();
-            if(abs(nowTimestamp - lastTimestamp) >= 10000000000) // 10s
+            if(abs(nowTimestamp - lastTimestamp) >= timeSub) 
             {
-                f_stop_order = true;
-                f_start_order = false;
                 redisPublishStartOrStop("stop");
             }
+            this_thread::sleep_for(chrono::seconds(5));
         }
     }
 }
 
-
 void HITBWebsock::Connect()
 {
-    
-    client.set_message_handler([this](web::websockets::client::websocket_incoming_message msg) { message_handler(msg); });
-    client.connect(wssURL).wait();
-    for(string symbol : HITB_symbols)
-    {
-        send_message(subscribeOrderbook(symbol, true));
-        this_thread::sleep_for(chrono::seconds(10));
-    }
-    is_connected = true;
+    try{
+        client.set_message_handler([this](web::websockets::client::websocket_incoming_message msg) { message_handler(msg); });
+        client.set_close_handler(
+            [this](web::websockets::client::websocket_close_status close_status, const utility::string_t &reason, const std::error_code &error) 
+            {
+                app_api.LoggingEvent(ConnectorID, "INFO", "stream", "Stopping of a market stream for orders");
+                app_api.LoggingEvent(ConnectorID, "INFO", "stream", "Stopping of a market stream for trades");
+            }
+        );
 
-    // thread th(&HITBWebsock::StopOrder, this);
-    // th.detach();
+        client.connect(wssURL.c_str()).wait();
+        cout << util.Green << " - Daemonizing connectord: Done" << util.ResetColor << endl;
+        for(string symbol : HITB_symbols)
+        {
+            send_message(subscribeOrderbook("subscribeOrderbook", symbol, true));
+            send_message(subscribeOrderbook("subscribeTrades", symbol, true));
+        }
+        lastTimestamp = util.GetNowTimestamp();
+        is_connected = true;
+    }catch(exception e){
+    }
+
+    sendToRedis("order", "",  "start",  "",  "", 1, 0);
+    sendToRedis("trade", "",  "start",  "",  "", 1, 0);
+
+    thread th(&HITBWebsock::StopOrder, this);
+    th.detach();
 }
 
 void HITBWebsock::Disconnect()
 {
     if(is_connected){
-        cout << "web socket disconnect!!!" << endl;
         for(string symbol : HITB_symbols)
         {
-            send_message(subscribeOrderbook(symbol, false));
+            send_message(subscribeOrderbook("subscribeOrderbook",symbol, false));
+            send_message(subscribeOrderbook("subscribeTrades",symbol, false));
         }
         client.close().wait();
         is_connected = false;
-        f_start_order = false;
-        f_stop_order = false;
-        // redisPublishStartOrStop("stop");
+        redisPublishStartOrStop("stop");
+        this_thread::sleep_for(chrono::seconds(5));
     }
 }
 
-HITBWebsock::HITBWebsock( vector<string> cypherTrust_symbols, string wssURL, string connectorID, string redisUri, string redisOrderBookChannel, string redisConnectorChannel)
+HITBWebsock::HITBWebsock( API app_api, vector<string> cypherTrust_symbols, string wssURL, string connectorID, string redisUri, string redisOrderBookChannel, string redisConnectorChannel)
 {
     util = Util();
-    
+    this->app_api = app_api;
     this->CypherTrust_symbols = cypherTrust_symbols;
     this->wssURL = wssURL;
     this->ConnectorID = connectorID;
@@ -243,8 +436,6 @@ HITBWebsock::HITBWebsock( vector<string> cypherTrust_symbols, string wssURL, str
         HITB_symbols.push_back(symbol);
     }
 }
-
-
 
 HITBWebsock::~HITBWebsock()
 {

@@ -1,4 +1,4 @@
-#include "exchange/BNUS/API.h"
+#include "exchange/BINC/API.h"
 #include <iostream>
 #include "curl/curl.h"
 #include "rapidjson/document.h"
@@ -8,7 +8,7 @@
 using namespace rapidjson;
 using namespace std;
 
-/* Used by BNUSAPI::Call to put websource into a string type */
+/* Used by BINCAPI::Call to put websource into a string type */
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
   ((string *)userp)->append((char *)contents, size * nmemb);
@@ -16,7 +16,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 }
 
 /* Uses libcurl to get Data From API */
-string BNUSAPI::Call(string method, bool authed, string path, string body)
+string BINCAPI::Call(string method, bool authed, string path, string body)
 {
   CURL *curl;
   CURLcode res;
@@ -58,6 +58,7 @@ string BNUSAPI::Call(string method, bool authed, string path, string body)
       if (res != CURLE_OK){
         std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
         std::cerr << "curl_easy_perform() url error: " << uri + path << std::endl;
+        
       }
       /* always cleanup */
       curl_easy_cleanup(curl);
@@ -67,50 +68,42 @@ string BNUSAPI::Call(string method, bool authed, string path, string body)
   }
   catch(exception e)
   {
-    // cout << "hitb api occur: " << e.what() << endl;
+    cout << "hitb api occur: " << e.what() << endl;
   }
   return readBuffer;
 }
 
-string BNUSAPI::Get_orderbook(string market, string limit)
-{
-  string url = "/api/v3/depth?symbol=" + market + "&limit=" + limit;
-  string res = Call("GET", false, url, "");
-  return res;
-}
-
-
 
 //List Accounts
-string BNUSAPI::Get_List_Accounts()
+string BINCAPI::Get_List_Accounts()
 {
   string res = Call("GET", true, "/accounts/", "");
   return res;
 }
 
 //Get an Account
-string BNUSAPI::Get_Account(string account_id)
+string BINCAPI::Get_Account(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id, "");
   return res;
 }
 
 //Get Account History
-string BNUSAPI::Get_Account_History(string account_id)
+string BINCAPI::Get_Account_History(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
   return res;
 }
 
 //Get Holds
-string BNUSAPI::Get_Holds(string account_id)
+string BINCAPI::Get_Holds(string account_id)
 {
   string res = Call("GET", true, "/accounts/" + account_id + "/ledger", "");
   return res;
 }
 
 // Place a New Order
-string BNUSAPI::Place_New_Order(string side, string price, string size, string client_oid, string type, string stp, string stop, string stop_price, string time_in_force, string cancel_after, bool post_only, string funds)
+string BINCAPI::Place_New_Order(string side, string price, string size, string client_oid, string type, string stp, string stop, string stop_price, string time_in_force, string cancel_after, bool post_only, string funds)
 {
   string order_id = "";
   Document d;
@@ -206,7 +199,7 @@ string BNUSAPI::Place_New_Order(string side, string price, string size, string c
 }
 
 // Cancel Order
-string BNUSAPI::Cancel_Order(string oid, bool isOid)
+string BINCAPI::Cancel_Order(string oid, bool isOid)
 {
   string url = "";
   if (!isOid)
@@ -227,14 +220,14 @@ string BNUSAPI::Cancel_Order(string oid, bool isOid)
 }
 
 // Cancel All Orders
-string BNUSAPI::Cancel_All_Order()
+string BINCAPI::Cancel_All_Order()
 {
   string res = Call("DELETE", true, "/orders", "");
   return res;
 }
 
 //List Orders
-string BNUSAPI::List_Orders(string product_id, bool isOpen, bool isPending, bool isActive)
+string BINCAPI::List_Orders(string product_id, bool isOpen, bool isPending, bool isActive)
 {
   string url = "/orders?";
   if (product_id != "")
@@ -260,7 +253,7 @@ string BNUSAPI::List_Orders(string product_id, bool isOpen, bool isPending, bool
 }
 
 //Get an Order
-string BNUSAPI::Get_Order(string oid, bool isOid)
+string BINCAPI::Get_Order(string oid, bool isOid)
 {
   string url = "";
   if (!isOid)
@@ -283,7 +276,7 @@ string BNUSAPI::Get_Order(string oid, bool isOid)
 
 //Products
 // Get Products
-string BNUSAPI::Get_Products()
+string BINCAPI::Get_Products()
 {
   string url = "/products";
 
@@ -293,7 +286,7 @@ string BNUSAPI::Get_Products()
 }
 
 //Get Single Product
-string BNUSAPI::Get_Single_Product()
+string BINCAPI::Get_Single_Product()
 {
   string url = "/products/" + product_id;
   string res = Call("GET", false, url, "");
@@ -302,7 +295,7 @@ string BNUSAPI::Get_Single_Product()
 }
 
 //Get Product Order Book
-string BNUSAPI::Get_Product_Order_Book()
+string BINCAPI::Get_Product_Order_Book()
 {
   string url = "/products/" + product_id + "/book";
   string res = Call("GET", false, url, "");
@@ -311,7 +304,7 @@ string BNUSAPI::Get_Product_Order_Book()
 }
 
 //Get Product Ticker
-string BNUSAPI::Get_Product_Ticker()
+string BINCAPI::Get_Product_Ticker()
 {
   string url = "/products/" + product_id + "/ticker";
   string res = Call("GET", false, url, "");
@@ -320,7 +313,7 @@ string BNUSAPI::Get_Product_Ticker()
 }
 
 //Get Trades
-string BNUSAPI::Get_Trades()
+string BINCAPI::Get_Trades()
 {
   string url = "/products/" + product_id + "/trades";
   string res = Call("GET", false, url, "");
@@ -329,7 +322,7 @@ string BNUSAPI::Get_Trades()
 }
 
 //Get Historic Rates
-string BNUSAPI::Get_Historic_Rates()
+string BINCAPI::Get_Historic_Rates()
 {
   string url = "/products/" + product_id + "/candles";
   string res = Call("GET", false, url, "");
@@ -338,7 +331,7 @@ string BNUSAPI::Get_Historic_Rates()
 }
 
 //Get 24hr Stats
-string BNUSAPI::Get_24hr_Stats()
+string BINCAPI::Get_24hr_Stats()
 {
   string url = "/products/" + product_id + "/stats";
   string res = Call("GET", false, url, "");
@@ -347,7 +340,7 @@ string BNUSAPI::Get_24hr_Stats()
 }
 
 //Get Currencies
-string BNUSAPI::Get_Currencies()
+string BINCAPI::Get_Currencies()
 {
   string url = "/currencies/";
   string res = Call("GET", false, url, "");
@@ -356,7 +349,7 @@ string BNUSAPI::Get_Currencies()
 }
 
 //Get Currency
-string BNUSAPI::Get_Currency(string cid)
+string BINCAPI::Get_Currency(string cid)
 {
   string url = "/currencies/" + cid;
   string res = Call("GET", false, url, "");
@@ -366,7 +359,7 @@ string BNUSAPI::Get_Currency(string cid)
 
 //Time
 //Get Time
-string BNUSAPI::Get_Time()
+string BINCAPI::Get_Time()
 {
   string url = "/time";
   string res = Call("GET", false, url, "");
@@ -376,7 +369,7 @@ string BNUSAPI::Get_Time()
 
 //Fills
 //List Fills
-std:: string BNUSAPI::List_Fills(string order_id, string product_id)
+std:: string BINCAPI::List_Fills(string order_id, string product_id)
 {
   string url = "/fills?";
   if(order_id != ""){
@@ -392,7 +385,7 @@ std:: string BNUSAPI::List_Fills(string order_id, string product_id)
 
 //Payment Methods
 //List_Payment_Methods
-string BNUSAPI::List_Payment_Methods()
+string BINCAPI::List_Payment_Methods()
 {
   string url = "/payment-methods";
   string res = Call("GET", true, url, "");
@@ -402,7 +395,7 @@ string BNUSAPI::List_Payment_Methods()
 
 //Coinbase Accounts
 //List Coinbase Accounts
-string BNUSAPI::List_Coinbase_Accounts()
+string BINCAPI::List_Coinbase_Accounts()
 {
   string url = "/coinbase-accounts";
   string res = Call("GET", true, url, "");
@@ -412,7 +405,7 @@ string BNUSAPI::List_Coinbase_Accounts()
 
 //Limits
 //Get Current Exchange Limits
-string BNUSAPI::Get_Current_Exchange_Limits()
+string BINCAPI::Get_Current_Exchange_Limits()
 {
   string url = "/users/self/exchange-limits";
   string res = Call("GET", true, url, "");
@@ -422,7 +415,7 @@ string BNUSAPI::Get_Current_Exchange_Limits()
 
 //Deposit
 //List Deposits
-string BNUSAPI::List_Deposits(string profile_id, string before, string after, string limit)
+string BINCAPI::List_Deposits(string profile_id, string before, string after, string limit)
 {
   string url = "/transfers?type=deposit";
   if(profile_id != ""){
@@ -443,7 +436,7 @@ string BNUSAPI::List_Deposits(string profile_id, string before, string after, st
 }
 
 //Single Deposit
-string BNUSAPI::Single_Deposit(string transfer_id)
+string BINCAPI::Single_Deposit(string transfer_id)
 {
   string url = "/transfers/:" + transfer_id;
   string res = Call("GET", true, url, "");
@@ -452,7 +445,7 @@ string BNUSAPI::Single_Deposit(string transfer_id)
 }
 
 //Payment method
-string BNUSAPI::Payment_Method_Deposit(string amount, string currency, string payment_method_id)
+string BINCAPI::Payment_Method_Deposit(string amount, string currency, string payment_method_id)
 {
   Document d;
   d.SetObject();
@@ -483,7 +476,7 @@ string BNUSAPI::Payment_Method_Deposit(string amount, string currency, string pa
 }
 
 //Coinbase Deposit
-string BNUSAPI::Coinbase_Deposit(string amount, string currency, string coinbase_account_id)
+string BINCAPI::Coinbase_Deposit(string amount, string currency, string coinbase_account_id)
 {
   Document d;
   d.SetObject();
@@ -514,7 +507,7 @@ string BNUSAPI::Coinbase_Deposit(string amount, string currency, string coinbase
 }
 
 //Generate a Crypto Deposit Address
-string BNUSAPI::Generate_Crypto_Deposit_Address(string coinbase_account_id)
+string BINCAPI::Generate_Crypto_Deposit_Address(string coinbase_account_id)
 {
 
   string res = Call("POST", true, "/coinbase-accounts/" + coinbase_account_id + "/addresses", "");
@@ -524,7 +517,7 @@ string BNUSAPI::Generate_Crypto_Deposit_Address(string coinbase_account_id)
 
 //Withdraw
 //List Withdrawals
-string BNUSAPI::List_Withdrawals(string profile_id, string before, string after, string limit)
+string BINCAPI::List_Withdrawals(string profile_id, string before, string after, string limit)
 {
   string url = "/transfers?type=withdraw";
   if(profile_id != ""){
@@ -545,7 +538,7 @@ string BNUSAPI::List_Withdrawals(string profile_id, string before, string after,
 }
 
 //Single Withdrawal
-string BNUSAPI::Single_Withdrawal(string transfer_id)
+string BINCAPI::Single_Withdrawal(string transfer_id)
 {
   string url = "/transfers/:" + transfer_id;
   string res = Call("GET", true, url, "");
@@ -554,7 +547,7 @@ string BNUSAPI::Single_Withdrawal(string transfer_id)
 }
 
 //Payment method
-string BNUSAPI::Payment_Method_Withdraw(string amount, string currency, string payment_method_id)
+string BINCAPI::Payment_Method_Withdraw(string amount, string currency, string payment_method_id)
 {
   Document d;
   d.SetObject();
@@ -585,7 +578,7 @@ string BNUSAPI::Payment_Method_Withdraw(string amount, string currency, string p
 }
 
 //Coinbase Withdraw
-string BNUSAPI::Coinbase_Withdraw(string amount, string currency, string coinbase_account_id)
+string BINCAPI::Coinbase_Withdraw(string amount, string currency, string coinbase_account_id)
 {
   Document d;
   d.SetObject();
@@ -616,7 +609,7 @@ string BNUSAPI::Coinbase_Withdraw(string amount, string currency, string coinbas
 }
 
 //Crytop Withdraw
-string BNUSAPI::Crypto_Withdraw(string amount, string currency, string crypto_address, string destination_tag, string no_destination_tag, string add_network_fee_to_total)
+string BINCAPI::Crypto_Withdraw(string amount, string currency, string crypto_address, string destination_tag, string no_destination_tag, string add_network_fee_to_total)
 {
   Document d;
   d.SetObject();
@@ -662,7 +655,7 @@ string BNUSAPI::Crypto_Withdraw(string amount, string currency, string crypto_ad
 }
 
 //Fee Estimate
-string BNUSAPI::Fee_Estimate(string currency, string crypto_address)
+string BINCAPI::Fee_Estimate(string currency, string crypto_address)
 {
   string url = "/withdrawals/fee-estimate?currency=" + currency + "&crypto_address" + crypto_address;
   string res = Call("GET", true, url, "");
@@ -672,7 +665,7 @@ string BNUSAPI::Fee_Estimate(string currency, string crypto_address)
 
 //Stablecoin Conversions
 //Create Conversion
-string BNUSAPI::Create_Conversion(string from, string to, string amount)
+string BINCAPI::Create_Conversion(string from, string to, string amount)
 {
   Document d;
   d.SetObject();
@@ -704,7 +697,7 @@ string BNUSAPI::Create_Conversion(string from, string to, string amount)
 
 //Fees
 //Get Current Fees
-string BNUSAPI::Get_Current_Fees()
+string BINCAPI::Get_Current_Fees()
 {
   string url = "/fees";
   string res = Call("GET", true, url, "");
@@ -714,7 +707,7 @@ string BNUSAPI::Get_Current_Fees()
 
 //Reports
 //Create a new report
-string BNUSAPI::Create_new_report(string type, string start_date, string end_date, string product_id, string account_id, string format, string email)
+string BINCAPI::Create_new_report(string type, string start_date, string end_date, string product_id, string account_id, string format, string email)
 {
   Document d;
   d.SetObject();
@@ -765,7 +758,7 @@ string BNUSAPI::Create_new_report(string type, string start_date, string end_dat
 }
 
 //Get report status
-string BNUSAPI::Get_report_status(string report_id)
+string BINCAPI::Get_report_status(string report_id)
 {
   string url = "/reports/:" + report_id;
   string res = Call("GET", true, url, "");
@@ -774,7 +767,7 @@ string BNUSAPI::Get_report_status(string report_id)
 }
 
 //List Profiles
-string BNUSAPI::List_Profiles(string active)
+string BINCAPI::List_Profiles(string active)
 {
   string url = "/profiles";
   string res = Call("GET", true, url, "");
@@ -783,7 +776,7 @@ string BNUSAPI::List_Profiles(string active)
 }
 
 //Get a Profile
-string BNUSAPI::Get_Profile(string profile_id)
+string BINCAPI::Get_Profile(string profile_id)
 {
   string url = "/profiles/" + profile_id;
   string res = Call("GET", true, url, "");
@@ -792,7 +785,7 @@ string BNUSAPI::Get_Profile(string profile_id)
 }
 
 //Create profile transfer
-string BNUSAPI::Create_profile_transfer(string from, string to, string currency, string amount)
+string BINCAPI::Create_profile_transfer(string from, string to, string currency, string amount)
 {
   Document d;
   d.SetObject();
@@ -829,7 +822,7 @@ string BNUSAPI::Create_profile_transfer(string from, string to, string currency,
 
 //User Account
 //Trailing Volume
-string BNUSAPI::Trailing_Volume()
+string BINCAPI::Trailing_Volume()
 {
   string url = "/users/self/trailing-volume";
   string res = Call("GET", true, url, "");
@@ -854,12 +847,12 @@ string BNUSAPI::Trailing_Volume()
 
 
 
-BNUSAPI::BNUSAPI()
+BINCAPI::BINCAPI()
 {
   curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
-BNUSAPI::~BNUSAPI()
+BINCAPI::~BINCAPI()
 {
   curl_global_cleanup();
 }
